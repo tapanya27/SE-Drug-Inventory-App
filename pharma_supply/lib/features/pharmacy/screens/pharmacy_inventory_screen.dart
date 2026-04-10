@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/api_service.dart';
 
 class PharmacyInventoryScreen extends StatefulWidget {
   const PharmacyInventoryScreen({super.key});
@@ -10,13 +11,32 @@ class PharmacyInventoryScreen extends StatefulWidget {
 }
 
 class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
-  // Dummy local inventory for the Pharmacy Store itself
-  final List<Map<String, dynamic>> _inventory = [
-    {'id': 'p1', 'name': 'Paracetamol 500mg', 'stock': 250, 'threshold': 100},
-    {'id': 'p2', 'name': 'Amoxicillin 250mg', 'stock': 30, 'threshold': 50}, // Low
-    {'id': 'p3', 'name': 'Bandages', 'stock': 15, 'threshold': 20}, // Low
-    {'id': 'p4', 'name': 'Cough Syrup', 'stock': 0, 'threshold': 10}, // Out of Stock
-  ];
+  List<dynamic> _inventory = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInventory();
+  }
+
+  Future<void> _fetchInventory() async {
+    try {
+      final data = await ApiService.getInventory();
+      setState(() {
+        _inventory = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,44 +61,48 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.builder(
-                itemCount: _inventory.length,
-                itemBuilder: (context, index) {
-                  final item = _inventory[index];
-                  final stock = item['stock'] as int;
-                  final threshold = item['threshold'] as int;
-                  
-                  bool isLow = stock <= threshold;
-                  bool isOut = stock == 0;
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null 
+                  ? Center(child: Text('Error: $_error')) 
+                  : ListView.builder(
+                      itemCount: _inventory.length,
+                      itemBuilder: (context, index) {
+                        final item = _inventory[index];
+                        final stock = item['stock'] as int;
+                        final threshold = item['threshold'] as int;
+                        
+                        bool isLow = stock <= threshold;
+                        bool isOut = stock == 0;
 
-                  return Card(
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      title: Text('${item['name']}'),
-                      subtitle: Text('Threshold: $threshold'),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '$stock in stock',
-                            style: TextStyle(
-                              color: isOut ? AppColors.error : (isLow ? Colors.orange : Colors.green),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                        return Card(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            title: Text('${item['name']}'),
+                            subtitle: Text('Threshold: $threshold'),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$stock in stock',
+                                  style: TextStyle(
+                                    color: isOut ? AppColors.error : (isLow ? Colors.orange : Colors.green),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (isLow || isOut)
+                                  Text(
+                                    isOut ? 'Depleted!' : 'Warning',
+                                    style: TextStyle(color: isOut ? AppColors.error : Colors.orange, fontSize: 12),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (isLow || isOut)
-                            Text(
-                              isOut ? 'Depleted!' : 'Warning',
-                              style: TextStyle(color: isOut ? AppColors.error : Colors.orange, fontSize: 12),
-                            ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),

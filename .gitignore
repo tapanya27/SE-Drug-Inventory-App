@@ -1,0 +1,23 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/.env
+backend/scratch/
+backend/uploads/
+*.sqlite3
+backend/pharma_supply.db
+
+# Flutter
+pharma_supply/build/
+pharma_supply/.dart_tool/
+pharma_supply/.flutter-plugins
+pharma_supply/.flutter-plugins-dependencies
+pharma_supply/.idea/
+pharma_supply/ios/Flutter/Generated.xcconfig
+pharma_supply/ios/Flutter/flutter_export_environment.sh
+pharma_supply/macos/Flutter/GeneratedPluginRegistrant.swift
+pharma_supply/pubspec.lock
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/api_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -15,12 +16,68 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   String _selectedRole = 'Pharmacy Store';
 
-  void _signUp() {
-    // Dummy Sign Up logic: redirect based on selected role
-    if (_selectedRole == 'Warehouse') {
-      context.go('/warehouse_dashboard');
-    } else {
-      context.go('/pharmacy_dashboard');
+  bool _isLoading = false;
+  String? _emailError;
+  String? _passwordError;
+
+  void _validateEmail(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        _emailError = null;
+      } else if (!value.contains('@') || !value.contains('.')) {
+        _emailError = 'Invalid email format (missing @ or .)';
+      } else {
+        _emailError = null;
+      }
+    });
+  }
+
+  void _validatePassword(String value) {
+    final passwordRegex = RegExp(r"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+    setState(() {
+      if (value.isEmpty) {
+        _passwordError = null;
+      } else if (value.length < 8) {
+        _passwordError = 'Minimum 8 characters required';
+      } else if (!passwordRegex.hasMatch(value)) {
+        _passwordError = 'Require Uppercase, Number, and Special Char';
+      } else {
+        _passwordError = null;
+      }
+    });
+  }
+
+  void _signUp() async {
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    _validateEmail(email);
+    _validatePassword(password);
+
+    if (_emailError != null || _passwordError != null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ApiService.signup(
+        _nameController.text,
+        _emailController.text,
+        _passwordController.text,
+        _selectedRole,
+      );
+
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created! Please sign in.')),
+      );
+      context.go('/login');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -75,19 +132,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: _emailController,
-                        decoration: const InputDecoration(
+                        onChanged: _validateEmail,
+                        decoration: InputDecoration(
                           labelText: 'Email Address',
                           hintText: 'e.g., store@pharmacy.com',
-                          prefixIcon: Icon(Icons.email_outlined),
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          errorText: _emailError,
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
+                        onChanged: _validatePassword,
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock_outline),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          errorText: _passwordError,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -97,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           labelText: 'Select Role',
                           prefixIcon: Icon(Icons.work_outline),
                         ),
-                        items: ['Pharmacy Store', 'Warehouse'].map((role) {
+                        items: ['Pharmacy Store', 'Warehouse', 'Company', 'Admin'].map((role) {
                           return DropdownMenuItem(
                             value: role,
                             child: Text(role),
@@ -111,8 +172,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 32),
                       ElevatedButton(
-                        onPressed: _signUp,
-                        child: const Text('Sign Up'),
+                        onPressed: _isLoading ? null : _signUp,
+                        child: _isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Sign Up'),
                       ),
                       const SizedBox(height: 16),
                       TextButton(

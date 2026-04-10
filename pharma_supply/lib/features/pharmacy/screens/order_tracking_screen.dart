@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
@@ -10,33 +11,32 @@ class OrderTrackingScreen extends StatefulWidget {
 }
 
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
-  // Dummy order data
-  final List<Map<String, dynamic>> _orders = [
-    {
-      'id': 'ORD-1052',
-      'date': 'Today, 10:30 AM',
-      'status': 'Dispatched',
-      'currentStep': 2,
-      'items': 'Amoxicillin, Inhalers',
-      'total': 134.50,
-    },
-    {
-      'id': 'ORD-1051',
-      'date': 'Yesterday, 02:15 PM',
-      'status': 'Delivered',
-      'currentStep': 3,
-      'items': 'Paracetamol, Bandages',
-      'total': 45.00,
-    },
-    {
-      'id': 'ORD-1050',
-      'date': 'Oct 24, 09:00 AM',
-      'status': 'Processing',
-      'currentStep': 1,
-      'items': 'Omeprazole',
-      'total': 300.00,
-    },
-  ];
+  Future<List<dynamic>>? _ordersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshOrders();
+  }
+
+  void _refreshOrders() {
+    setState(() {
+      _ordersFuture = ApiService.getOrders();
+    });
+  }
+
+  int _getStepFromStatus(String status) {
+    switch (status) {
+      case 'Processing':
+        return 1;
+      case 'Dispatched':
+        return 2;
+      case 'Delivered':
+        return 3;
+      default:
+        return 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,13 +49,51 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshOrders,
+          ),
+        ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: _orders.length,
-        itemBuilder: (context, index) {
-          final order = _orders[index];
-          return _OrderTrackingCard(order: order);
+      body: FutureBuilder<List<dynamic>>(
+        future: _ordersFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text('Error: ${snapshot.error}', textAlign: TextAlign.center),
+            ));
+          }
+          final orders = snapshot.data ?? [];
+          if (orders.isEmpty) {
+            return const Center(child: Text('No actual orders found. Place an order to see it here!'));
+          }
+          return RefreshIndicator(
+            onRefresh: () async => _refreshOrders(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                final trackingData = {
+                  'id': order['id'].toString(),
+                  'date': order['order_date']?.toString().split('T')[0] ?? 'N/A',
+                  'status': order['status'] ?? 'Processing',
+                  'currentStep': _getStepFromStatus(order['status'] ?? 'Processing'),
+                  'items': order['items_summary'] ?? 'N/A',
+                  'total': (order['total_amount'] as num?)?.toDouble() ?? 0.0,
+                };
+                return _OrderTrackingCard(
+                  order: trackingData,
+                  onStatusUpdate: _refreshOrders,
+                );
+              },
+            ),
+          );
         },
       ),
     );
@@ -64,8 +102,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
 class _OrderTrackingCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final VoidCallback onStatusUpdate;
 
-  const _OrderTrackingCard({required this.order});
+  const _OrderTrackingCard({required this.order, required this.onStatusUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -88,9 +127,9 @@ class _OrderTrackingCard extends StatelessWidget {
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
+              color: statusColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+              border: Border.all(color: statusColor.withOpacity(0.5)),
             ),
             child: Text(
               order['status'],
@@ -111,7 +150,28 @@ class _OrderTrackingCard extends StatelessWidget {
                   Text('Items: ${order['items']}', style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: 16),
                   _buildTrackingStepper(context, order['currentStep'] as int),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
+                  if (order['status'] == 'Processing')
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                        onPressed: () async {
+                          try {
+                            await ApiService.cancelOrder(int.parse(order['id']));
+                            onStatusUpdate();
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: ${e.toString()}')),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('Cancel Order'),
+                      ),
+                    ),
                   if (order['status'] == 'Dispatched')
                     SizedBox(
                       width: double.infinity,
@@ -119,11 +179,18 @@ class _OrderTrackingCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green.shade600,
                         ),
-                        onPressed: () {
-                          // Simulate confirming delivery
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Delivery confirmed!')),
-                          );
+                        onPressed: () async {
+                          try {
+                            await ApiService.updateOrderStatus(
+                                int.parse(order['id']), 'Delivered');
+                            onStatusUpdate();
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: ${e.toString()}')),
+                              );
+                            }
+                          }
                         },
                         icon: const Icon(Icons.check_circle),
                         label: const Text('Confirm Delivery'),
@@ -139,12 +206,7 @@ class _OrderTrackingCard extends StatelessWidget {
   }
 
   Widget _buildTrackingStepper(BuildContext context, int currentStep) {
-    final steps = [
-      'Order Placed',
-      'Stock Checked',
-      'Dispatched',
-      'Delivered',
-    ];
+    final steps = ['Order Placed', 'Processing', 'Dispatched', 'Delivered'];
 
     return Row(
       children: List.generate(steps.length, (index) {
