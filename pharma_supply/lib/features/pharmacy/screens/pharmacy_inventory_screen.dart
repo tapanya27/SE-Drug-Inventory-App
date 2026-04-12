@@ -40,78 +40,164 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Store Inventory'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: Text(
+          'Store Inventory',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimaryLight),
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Current Store Stock',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null 
-                  ? Center(child: Text('Error: $_error')) 
-                  : ListView.builder(
-                      itemCount: _inventory.length,
-                      itemBuilder: (context, index) {
-                        final item = _inventory[index];
-                        final stock = item['stock'] as int;
-                        final threshold = item['threshold'] as int;
-                        
-                        bool isLow = stock <= threshold;
-                        bool isOut = stock == 0;
-
-                        return Card(
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            title: Text('${item['name']}'),
-                            subtitle: Text('Threshold: $threshold'),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$stock in stock',
-                                  style: TextStyle(
-                                    color: isOut ? AppColors.error : (isLow ? Colors.orange : Colors.green),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                if (isLow || isOut)
-                                  Text(
-                                    isOut ? 'Depleted!' : 'Warning',
-                                    style: TextStyle(color: isOut ? AppColors.error : Colors.orange, fontSize: 12),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInventoryHeader(theme),
+          Expanded(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null 
+                ? _buildErrorState() 
+                : _buildInventoryList(theme),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/place_order'),
-        icon: const Icon(Icons.add_shopping_cart),
-        label: const Text('Replenish Stock'),
+        icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
+        label: const Text('Replenish Stock', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primaryAccent,
+      ),
+    );
+  }
+
+  Widget _buildInventoryHeader(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Stock Management',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Monitor and manage your pharmacy\'s current medicine stock levels',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryList(ThemeData theme) {
+    if (_inventory.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 64, color: AppColors.borderLight),
+            const SizedBox(height: 16),
+            const Text('No inventory records found', style: TextStyle(color: AppColors.textSecondaryLight)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 24, paddingBottom: 100),
+      itemCount: _inventory.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final item = _inventory[index];
+        final stock = item['stock'] as int;
+        final threshold = item['threshold'] as int;
+        
+        bool isLow = stock <= threshold;
+        bool isOut = stock == 0;
+        
+        Color statusColor = isOut ? AppColors.error : (isLow ? AppColors.warning : AppColors.success);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                isOut ? Icons.block_flipped : (isLow ? Icons.warning_amber_rounded : Icons.medication_rounded),
+                color: statusColor,
+              ),
+            ),
+            title: Text(
+              item['name'] ?? 'Unknown Medicine',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Min Threshold: $threshold',
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
+              ),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$stock',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                Text(
+                  'units',
+                  style: TextStyle(color: statusColor.withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text('Error: $_error', textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _fetchInventory,
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
       ),
     );
   }

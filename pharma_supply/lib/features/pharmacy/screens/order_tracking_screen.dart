@@ -40,20 +40,27 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Track Deliveries'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: Text(
+          'Track Deliveries',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimaryLight),
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
             onPressed: _refreshOrders,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: FutureBuilder<List<dynamic>>(
@@ -63,20 +70,19 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Text('Error: ${snapshot.error}', textAlign: TextAlign.center),
-            ));
+            return _buildErrorState(snapshot.error.toString());
           }
           final orders = snapshot.data ?? [];
           if (orders.isEmpty) {
-            return const Center(child: Text('No actual orders found. Place an order to see it here!'));
+            return _buildEmptyState();
           }
+          
           return RefreshIndicator(
             onRefresh: () async => _refreshOrders(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(24.0),
               itemCount: orders.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final trackingData = {
@@ -86,7 +92,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   'currentStep': _getStepFromStatus(order['status'] ?? 'Processing'),
                   'items': order['items_summary'] ?? 'N/A',
                   'total': (order['total_amount'] as num?)?.toDouble() ?? 0.0,
-                  'supplier': order['warehouse_name'] ?? 'Unknown',
+                  'supplier': order['warehouse_name'] ?? 'Unknown Warehouse',
                 };
 
                 return _OrderTrackingCard(
@@ -100,6 +106,52 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       ),
     );
   }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(48.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.local_shipping_outlined, size: 64, color: AppColors.borderLight),
+            const SizedBox(height: 16),
+            const Text(
+              'No active shipments',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Place an order from the replenishment screen to track it here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondaryLight),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text('Error: $error', textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _refreshOrders,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _OrderTrackingCard extends StatelessWidget {
@@ -110,96 +162,75 @@ class _OrderTrackingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = order['status'] == 'Delivered'
-        ? Colors.grey
-        : (order['status'] == 'Dispatched' ? AppColors.primaryAccent : Colors.orange);
+    final status = order['status'];
+    Color statusColor = status == 'Delivered' ? AppColors.success : (status == 'Dispatched' ? AppColors.primaryAccent : AppColors.warning);
+    IconData statusIcon = status == 'Delivered' ? Icons.check_circle_rounded : (status == 'Dispatched' ? Icons.local_shipping_rounded : Icons.pending_actions_rounded);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderLight),
+      ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          collapsedIconColor: statusColor,
-          iconColor: statusColor,
-          title: Text(
-            'Order #${order['id']}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(statusIcon, color: statusColor, size: 24),
           ),
-          subtitle: Text('${order['date']} • \$${(order['total'] as double).toStringAsFixed(2)}'),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: statusColor.withOpacity(0.5)),
-            ),
-            child: Text(
-              order['status'],
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
+          title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          subtitle: Text('${order['date']} • $supplierName', style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight)),
           children: [
-            const Divider(color: Colors.white24),
+            const Divider(height: 1, color: AppColors.borderLight),
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Supplier: ${order['supplier']}', 
-                      style: const TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Order Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text('\$${(order['total'] as double).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryAccent)),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  Text('Items: ${order['items']}', style: Theme.of(context).textTheme.bodyMedium),
-
-                  const SizedBox(height: 16),
-                  _buildTrackingStepper(context, order['currentStep'] as int),
+                  Text(order['items'], style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight)),
+                  
                   const SizedBox(height: 24),
-                  if (order['status'] == 'Processing')
+                  _buildTrackingStepper(context, order['currentStep'] as int),
+                  const SizedBox(height: 32),
+                  
+                  if (status == 'Processing')
                     SizedBox(
                       width: double.infinity,
-                      child: TextButton.icon(
-                        style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                        onPressed: () async {
-                          try {
-                            await ApiService.cancelOrder(int.parse(order['id']));
-                            onStatusUpdate();
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: ${e.toString()}')),
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.cancel_outlined),
-                        label: const Text('Cancel Order'),
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        onPressed: () => _handleCancel(context),
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: const Text('Cancel Request', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
-                  if (order['status'] == 'Dispatched')
+                  if (status == 'Dispatched')
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
+                          backgroundColor: AppColors.success,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        onPressed: () async {
-                          try {
-                            await ApiService.updateOrderStatus(
-                                int.parse(order['id']), 'Delivered');
-                            onStatusUpdate();
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: ${e.toString()}')),
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.check_circle),
-                        label: const Text('Confirm Delivery'),
+                        onPressed: () => _handleConfirm(context),
+                        icon: const Icon(Icons.done_all_rounded, size: 18),
+                        label: const Text('Mark as Delivered', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                 ],
@@ -211,9 +242,33 @@ class _OrderTrackingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackingStepper(BuildContext context, int currentStep) {
-    final steps = ['Order Placed', 'Processing', 'Dispatched', 'Delivered'];
+  String get supplierName => order['supplier'];
 
+  Future<void> _handleCancel(BuildContext context) async {
+    try {
+      await ApiService.cancelOrder(int.parse(order['id']));
+      onStatusUpdate();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _handleConfirm(BuildContext context) async {
+    try {
+      await ApiService.updateOrderStatus(int.parse(order['id']), 'Delivered');
+      onStatusUpdate();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Widget _buildTrackingStepper(BuildContext context, int currentStep) {
+    final steps = ['Placed', 'In Process', 'Dispatched', 'Delivered'];
+    
     return Row(
       children: List.generate(steps.length, (index) {
         final isActive = index <= currentStep;
@@ -227,28 +282,28 @@ class _OrderTrackingCard extends StatelessWidget {
                   Expanded(
                     child: Container(
                       height: 2,
-                      color: index == 0 ? Colors.transparent : (isActive ? AppColors.primaryAccent : Colors.white24),
+                      color: index == 0 ? Colors.transparent : (isActive ? AppColors.primaryAccent : AppColors.borderLight),
                     ),
                   ),
                   Container(
-                    width: 24,
-                    height: 24,
+                    width: 22,
+                    height: 22,
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.primaryAccent : Colors.transparent,
+                      color: isActive ? AppColors.primaryAccent : Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isActive ? AppColors.primaryAccent : Colors.white24,
+                        color: isActive ? AppColors.primaryAccent : AppColors.borderLight,
                         width: 2,
                       ),
                     ),
                     child: isActive
-                        ? const Icon(Icons.check, size: 16, color: Colors.white)
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
                         : null,
                   ),
                   Expanded(
                     child: Container(
                       height: 2,
-                      color: isLast ? Colors.transparent : (index < currentStep ? AppColors.primaryAccent : Colors.white24),
+                      color: isLast ? Colors.transparent : (index < currentStep ? AppColors.primaryAccent : AppColors.borderLight),
                     ),
                   ),
                 ],
@@ -259,7 +314,7 @@ class _OrderTrackingCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 10,
-                  color: isActive ? Colors.white : Colors.grey,
+                  color: isActive ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -269,4 +324,5 @@ class _OrderTrackingCard extends StatelessWidget {
       }),
     );
   }
+}
 }

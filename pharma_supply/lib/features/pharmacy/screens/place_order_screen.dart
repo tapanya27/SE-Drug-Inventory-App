@@ -144,74 +144,22 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Place Order'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: Text(
+          'Replenish Inventory',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimaryLight),
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // --- Warehouse Selector ---
-            if (_warehouses.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _selectedWarehouseId,
-                    dropdownColor: AppColors.cardColor,
-                    isExpanded: true,
-                    icon: const Icon(Icons.warehouse_rounded, color: AppColors.primaryAccent),
-                    hint: const Text('Select Supplier Warehouse'),
-                    items: _warehouses.map((w) {
-                      return DropdownMenuItem<int>(
-                        value: w['id'],
-                        child: Text(w['name'], style: const TextStyle(color: Colors.white)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedWarehouseId = val;
-                          _cart.clear();
-                        });
-                        _fetchWarehouseInventory(val);
-                      }
-                    },
-                  ),
-                ),
-              ),
-            if (_selectedWarehouseId != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                  'DEBUG: Selected Warehouse ID: $_selectedWarehouseId',
-                  style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ),
-            Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null 
-                  ? Center(child: Text('Error: $_error'))
-                  : _filteredCatalog.isEmpty
-                    ? Center(child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inventory_2_outlined, color: Colors.white24, size: 64),
-                          const SizedBox(height: 16),
                           Text('No inventory found at this warehouse.', style: TextStyle(color: Colors.white38)),
                         ],
                       ))

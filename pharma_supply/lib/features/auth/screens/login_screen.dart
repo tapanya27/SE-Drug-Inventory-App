@@ -126,80 +126,139 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Card(
-                elevation: 8,
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Icon(
-                        Icons.local_hospital_rounded,
-                        size: 64,
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo/Brand Section
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.medication_liquid_rounded,
+                        size: 40,
                         color: AppColors.primaryAccent,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Pharma Supply System',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sign in to your account',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 32),
-                      TextField(
-                        controller: _emailController,
-                        onChanged: _validateEmail,
-                        decoration: InputDecoration(
-                          labelText: 'Email Address',
-                          hintText: 'e.g., store@pharmacy.com',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          errorText: _emailError,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Welcome back',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      fontSize: 32,
+                      letterSpacing: -0.5,
+                      color: AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Log in to your Pharma Supply account',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Login Form Card
+                  Card(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Email Address',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: AppColors.textPrimaryLight,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        onChanged: _validatePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          errorText: _passwordError,
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _emailController,
+                          onChanged: _validateEmail,
+                          decoration: InputDecoration(
+                            hintText: 'alex@company.com',
+                            prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
+                            errorText: _emailError,
+                          ),
                         ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Password',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          onChanged: _validatePassword,
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                            errorText: _passwordError,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          child: _isLoading 
+                            ? const SizedBox(
+                                height: 20, 
+                                width: 20, 
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2, 
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              ) 
+                            : const Text('Sign In'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Footer Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Don\'t have an account?',
+                        style: theme.textTheme.bodyMedium,
                       ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
-                          : const Text('Sign In'),
-                      ),
-                      const SizedBox(height: 16),
                       TextButton(
-                        onPressed: () {
-                          context.go('/signup');
-                        },
-                        child: const Text('Don\'t have an account? Sign up'),
+                        onPressed: () => context.go('/signup'),
+                        child: Text(
+                          'Sign up',
+                          style: TextStyle(
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
           ),

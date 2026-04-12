@@ -83,13 +83,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Sign Up'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.go('/login'),
         ),
       ),
@@ -98,98 +100,139 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Card(
-                elevation: 8,
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Create an Account',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Create an account',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      fontSize: 32,
+                      letterSpacing: -0.5,
+                      color: AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Join the Pharma Supply logistics network',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildFieldLabel('Full Name / Store Name'),
+                          TextField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              hintText: 'e.g. Central Pharmacy',
+                              prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
                             ),
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          _buildFieldLabel('Email Address'),
+                          TextField(
+                            controller: _emailController,
+                            onChanged: _validateEmail,
+                            decoration: InputDecoration(
+                              hintText: 'alex@example.com',
+                              prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
+                              errorText: _emailError,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          _buildFieldLabel('Password'),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            onChanged: _validatePassword,
+                            decoration: InputDecoration(
+                              hintText: '••••••••',
+                              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                              errorText: _passwordError,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          _buildFieldLabel('Select Role'),
+                          DropdownButtonFormField<String>(
+                            value: _selectedRole,
+                            items: ['Pharmacy Store', 'Warehouse'].map((role) {
+                              return DropdownMenuItem(
+                                value: role,
+                                child: Text(role),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 32),
+                          
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _signUp,
+                            child: _isLoading 
+                              ? const SizedBox(
+                                  height: 20, 
+                                  width: 20, 
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Create Account'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Join the Pharma Supply System',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 32),
-                      TextField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name / Store Name',
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _emailController,
-                        onChanged: _validateEmail,
-                        decoration: InputDecoration(
-                          labelText: 'Email Address',
-                          hintText: 'e.g., store@pharmacy.com',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          errorText: _emailError,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        onChanged: _validatePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          errorText: _passwordError,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedRole,
-                        decoration: const InputDecoration(
-                          labelText: 'Select Role',
-                          prefixIcon: Icon(Icons.work_outline),
-                        ),
-                        items: ['Pharmacy Store', 'Warehouse', 'Company'].map((role) {
-                          return DropdownMenuItem(
-                            value: role,
-                            child: Text(role),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value!;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _signUp,
-                        child: _isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Sign Up'),
-                      ),
-                      const SizedBox(height: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Already have an account?', style: theme.textTheme.bodyMedium),
                       TextButton(
-                        onPressed: () {
-                          context.go('/login');
-                        },
-                        child: const Text('Already have an account? Sign in'),
+                        onPressed: () => context.go('/login'),
+                        child: Text(
+                          'Sign in',
+                          style: TextStyle(
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: AppColors.textPrimaryLight,
         ),
       ),
     );

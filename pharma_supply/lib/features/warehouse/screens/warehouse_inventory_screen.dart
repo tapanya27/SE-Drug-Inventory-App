@@ -125,144 +125,229 @@ class _WarehouseInventoryScreenState extends State<WarehouseInventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Manage Warehouse Inventory'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: Text(
+          'Warehouse Inventory',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimaryLight),
           onPressed: () => context.go('/warehouse_dashboard'),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_box, color: AppColors.primaryAccent),
-            tooltip: 'Add From Catalog',
+            icon: const Icon(Icons.add_business_rounded, color: AppColors.primaryAccent),
+            tooltip: 'Import from Catalog',
             onPressed: _showCatalogDialog,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchHeader(theme),
+          Expanded(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null 
+                ? _buildErrorState() 
+                : _buildInventoryList(theme),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Search / Filter simulation
-            TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search Inventory (e.g. Paracetamol)',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: AppColors.cardColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null 
-                  ? Center(child: Text('Error: $_error')) 
-                  : ListView.builder(
-                      itemCount: _inventory.where((item) => 
-                        item['name'].toString().toLowerCase().contains(_searchQuery)
-                      ).length,
-                      itemBuilder: (context, index) {
-                        final filteredList = _inventory.where((item) => 
-                          item['name'].toString().toLowerCase().contains(_searchQuery)
-                        ).toList();
-                        final item = filteredList[index];
-                        final stock = item['stock'] as int;
-                        final threshold = item['threshold'] as int;
-                        final isRequested = item['is_requested'] as bool? ?? false;
-                        final status = _calculateStatus(stock, threshold, isRequested);
-                        
-                        Color statusColor;
-                        if (status == 'Healthy') {
-                          statusColor = Colors.green;
-                        } else if (status == 'Requested') {
-                          statusColor = AppColors.primaryAccent;
-                        } else if (status == 'Critical' || status == 'Out of Stock') {
-                          statusColor = AppColors.error;
-                        } else {
-                          statusColor = Colors.orange; // Low
-                        }
+    );
+  }
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: statusColor,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                      const SizedBox(height: 4),
-                                      Text('Threshold: $threshold | Current Stock: $stock',
-                                          style: const TextStyle(color: Colors.grey)),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: statusColor),
-                                      ),
-                                      child: Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (status != 'Healthy' && status != 'Requested')
-                                      InkWell(
-                                        onTap: () async {
-                                          try {
-                                            await ApiService.requestStock(item['id']);
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Replenishment request sent for ${item['name']}.')),
-                                              );
-                                              _fetchInventory();
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Error: ${e.toString()}')),
-                                              );
-                                            }
-                                          }
-                                        },
-                                        child: const Text('Request Stock', style: TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold)),
-                                      )
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+  Widget _buildSearchHeader(ThemeData theme) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      child: TextField(
+        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+        decoration: InputDecoration(
+          hintText: 'Search products by name...',
+          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+          filled: true,
+          fillColor: AppColors.backgroundLight,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.borderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.primaryAccent, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInventoryList(ThemeData theme) {
+    final filteredList = _inventory.where((item) => 
+      item['name'].toString().toLowerCase().contains(_searchQuery)
+    ).toList();
+
+    if (filteredList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.borderLight),
+            const SizedBox(height: 16),
+            const Text('No items match your search', style: TextStyle(color: AppColors.textSecondaryLight)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(24),
+      itemCount: filteredList.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final item = filteredList[index];
+        final stock = item['stock'] as int;
+        final threshold = item['threshold'] as int;
+        final isRequested = item['is_requested'] as bool? ?? false;
+        final status = _calculateStatus(stock, threshold, isRequested);
+        
+        Color statusColor;
+        switch (status) {
+          case 'Healthy': statusColor = AppColors.success; break;
+          case 'Requested': statusColor = AppColors.primaryAccent; break;
+          case 'Critical':
+          case 'Out of Stock': statusColor = AppColors.error; break;
+          default: statusColor = AppColors.warning;
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderLight),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 6,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
                     ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item['name'] ?? 'Unknown Item',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Available: $stock units • Threshold: $threshold',
+                                style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                              ),
+                            ),
+                            if (status != 'Healthy' && status != 'Requested') ...[
+                              const SizedBox(height: 8),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () => _handleRequestStock(item),
+                                child: const Text(
+                                  'Request Stock',
+                                  style: TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleRequestStock(dynamic item) async {
+    try {
+      await ApiService.requestStock(item['id']);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Replenishment request sent for ${item['name']}.')),
+        );
+        _fetchInventory();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text('Error: $_error', textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _fetchInventory,
+              child: const Text('Try Again'),
             ),
           ],
         ),

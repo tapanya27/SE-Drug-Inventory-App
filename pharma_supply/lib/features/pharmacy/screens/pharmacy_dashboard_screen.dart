@@ -27,181 +27,138 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Pharmacy Dashboard'),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          'Dashboard',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 2,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshOrders,
+            icon: const Icon(Icons.notifications_none_rounded, color: AppColors.textPrimaryLight),
+            onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ApiService.logout();
-              if (context.mounted) context.go('/login');
-            },
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
+            onPressed: _refreshOrders,
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      drawer: Drawer(
-        backgroundColor: AppColors.background,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: AppColors.cardColor),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.local_hospital_rounded, color: AppColors.primaryAccent, size: 48),
-                  SizedBox(height: 16),
-                  Text('Central Pharmacy', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dashboard_outlined),
-              title: const Text('Dashboard'),
-              onTap: () {
-                 Navigator.pop(context);
-                 _refreshOrders();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_shopping_cart),
-              title: const Text('Place Order'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go('/place_order');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.inventory_2_outlined),
-              title: const Text('My Inventory'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go('/pharmacy_inventory');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.local_shipping_outlined),
-              title: const Text('Track Deliveries'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go('/track_deliveries');
-              },
-            ),
-            const Divider(color: Colors.white12),
-            ListTile(
-              leading: Icon(Icons.verified_user,
-                  color: ApiService.isVerified ? Colors.green : Colors.orange),
-              title: const Text('Document Verification'),
-              subtitle: Text(
-                ApiService.isVerified ? 'Verified' : 'Action Required',
-                style: TextStyle(
-                  color: ApiService.isVerified ? Colors.green : Colors.orange,
-                  fontSize: 12,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                context.go('/document_upload');
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: _buildDrawer(context),
       body: FutureBuilder<List<dynamic>>(
         future: _ordersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            final isAuthError = snapshot.error.toString().contains('401');
-            return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(isAuthError ? Icons.lock_outline : Icons.error_outline, color: AppColors.error, size: 48),
-                      const SizedBox(height: 16),
-                      Text(isAuthError ? 'Session Expired (401)' : 'Error: ${snapshot.error}', textAlign: TextAlign.center),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: isAuthError 
-                          ? () async {
-                              await ApiService.logout();
-                              if (context.mounted) context.go('/login');
-                            }
-                          : _refreshOrders,
-                        child: Text(isAuthError ? 'Go to Login' : 'Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+             return _buildErrorState(snapshot.error.toString());
           }
 
           final orders = snapshot.data ?? [];
           final pendingCount = orders.where((o) => o['status'] == 'Processing').length;
           final dispatchedCount = orders.where((o) => o['status'] == 'Dispatched').length;
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
+          return RefreshIndicator(
+            onRefresh: () async => _refreshOrders(),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Overview', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'General Overview',
+                            style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, letterSpacing: -0.5),
+                          ),
+                          Text(
+                            'Real-time status of your shipments',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => context.go('/place_order'),
+                        icon: const Icon(Icons.add_rounded, size: 20),
+                        label: const Text('New Order'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Stats Grid
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      int count = constraints.maxWidth > 600 ? 2 : 1;
+                      int count = constraints.maxWidth > 700 ? 2 : 1;
                       return GridView.count(
                         crossAxisCount: count,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 3,
+                        childAspectRatio: count == 1 ? 4 : 3.5,
                         children: [
-                          _StatCard(title: 'Pending Orders', value: pendingCount.toString(), icon: Icons.pending_actions, color: Colors.orange),
-                          _StatCard(title: 'Dispatched', value: dispatchedCount.toString(), icon: Icons.local_shipping, color: AppColors.primaryAccent),
+                          _StatCard(
+                            title: 'Active Requests', 
+                            value: pendingCount.toString(), 
+                            icon: Icons.hourglass_empty_rounded, 
+                            color: AppColors.warning
+                          ),
+                          _StatCard(
+                            title: 'In Transit', 
+                            value: dispatchedCount.toString(), 
+                            icon: Icons.local_shipping_outlined, 
+                            color: AppColors.info
+                          ),
                         ],
                       );
                     },
                   ),
-                  const SizedBox(height: 32),
-                  Text('Recent Orders', style: Theme.of(context).textTheme.titleLarge),
+                  
+                  const SizedBox(height: 48),
+
+                  // Recent Orders Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Recent Orders',
+                        style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('View All'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 16),
+                  
                   if (orders.isEmpty)
-                    const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text('No orders found.')))
+                    _buildEmptyState()
                   else
                     Card(
                       child: ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: orders.length > 5 ? 5 : orders.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.white24),
+                        separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderLight),
                         itemBuilder: (context, index) {
                           final order = orders[index];
-                          final status = order['status'] ?? 'Processing';
-                          final statusColor = status == 'Processing' ? Colors.orange : (status == 'Dispatched' ? AppColors.primaryAccent : Colors.grey);
-
-                          return ListTile(
-                            leading: const CircleAvatar(backgroundColor: AppColors.primaryAccent, child: Icon(Icons.medication_liquid, color: Colors.white)),
-                            title: Text('Order #${order['id']}'),
-                            subtitle: Text(order['items_summary'] ?? 'No items'),
-                            trailing: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
-                          );
+                          return _buildOrderTile(context, order);
                         },
                       ),
                     ),
@@ -211,11 +168,165 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/place_order'),
-        icon: const Icon(Icons.add),
-        label: const Text('New Order'),
-        backgroundColor: AppColors.primaryAccent,
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: AppColors.backgroundLight,
+              border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'PharmaLink',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildDrawerItem(Icons.dashboard_outlined, 'Dashboard', true, () => Navigator.pop(context)),
+          _buildDrawerItem(Icons.add_shopping_cart_rounded, 'Place Order', false, () {
+            Navigator.pop(context);
+            context.go('/place_order');
+          }),
+          _buildDrawerItem(Icons.inventory_2_outlined, 'My Inventory', false, () {
+            Navigator.pop(context);
+            context.go('/pharmacy_inventory');
+          }),
+          _buildDrawerItem(Icons.local_shipping_outlined, 'Track Deliveries', false, () {
+            Navigator.pop(context);
+            context.go('/track_deliveries');
+          }),
+          const Spacer(),
+          const Divider(indent: 20, endIndent: 20),
+          _buildDrawerItem(
+            Icons.verified_user_outlined, 
+            ApiService.isVerified ? 'Verified Account' : 'Action Required', 
+            false, 
+            () {
+              Navigator.pop(context);
+              context.go('/document_upload');
+            },
+            color: ApiService.isVerified ? AppColors.success : AppColors.warning,
+          ),
+          _buildDrawerItem(Icons.logout_rounded, 'Sign Out', false, () async {
+            await ApiService.logout();
+            if (context.mounted) context.go('/login');
+          }),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem(IconData icon, String title, bool selected, VoidCallback onTap, {Color? color}) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? (selected ? AppColors.primaryAccent : AppColors.textSecondaryLight), size: 22),
+      title: Text(
+        title, 
+        style: TextStyle(
+          color: color ?? (selected ? AppColors.primaryAccent : AppColors.textPrimaryLight),
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+        ),
+      ),
+      onTap: onTap,
+      dense: true,
+      selected: selected,
+      selectedTileColor: AppColors.primaryLight,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+    );
+  }
+
+  Widget _buildOrderTile(BuildContext context, dynamic order) {
+    final status = order['status'] ?? 'Processing';
+    Color statusColor;
+    if (status == 'Processing') statusColor = AppColors.warning;
+    else if (status == 'Dispatched') statusColor = AppColors.info;
+    else statusColor = AppColors.success;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.medication_outlined, color: AppColors.primaryAccent),
+      ),
+      title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(order['items_summary'] ?? 'Items hidden'),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: statusColor.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          status, 
+          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+     return const Center(
+       child: Padding(
+         padding: EdgeInsets.all(48.0),
+         child: Column(
+           children: [
+             Icon(Icons.inbox_rounded, size: 48, color: AppColors.borderLight),
+             SizedBox(height: 16),
+             Text('No orders found'),
+           ],
+         ),
+       ),
+     );
+  }
+
+  Widget _buildErrorState(String error) {
+    final isAuthError = error.contains('401');
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isAuthError ? Icons.lock_outline_rounded : Icons.error_outline_rounded, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text(isAuthError ? 'Session Expired' : 'Failed to load dashboard', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: isAuthError 
+                ? () async {
+                    await ApiService.logout();
+                    if (context.mounted) context.go('/login');
+                  }
+                : _refreshOrders,
+              child: Text(isAuthError ? 'Sign In Again' : 'Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -233,22 +344,16 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 12)),
-                Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              ],
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
             ),
-          ],
-        ),
-      ),
-    );
-  }
+            const SizedBox(width: 16),
 }

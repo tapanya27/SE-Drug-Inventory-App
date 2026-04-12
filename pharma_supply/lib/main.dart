@@ -30,7 +30,9 @@ class PharmaSupplyApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         title: 'Pharma Supply System',
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.light,
         routerConfig: AppRouter.router,
         debugShowCheckedModeBanner: false,
       ),

@@ -165,43 +165,44 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isVerified = ApiService.isVerified;
 
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Document Verification'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: Text(
+          'Account Verification',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimaryLight),
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
       ),
       body: FadeTransition(
         opacity: _fadeAnim,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Status Banner ---
-              _buildStatusBanner(isVerified),
-              const SizedBox(height: 24),
+              _buildModernStatusBanner(isVerified),
+              const SizedBox(height: 32),
 
-              // --- Upload Section (only if not verified) ---
               if (!isVerified) ...[
-                _buildUploadSection(),
-                const SizedBox(height: 24),
+                _buildModernUploadSection(theme),
+                const SizedBox(height: 32),
               ],
 
-              // --- AI Verification Results ---
               if (_lastAiResult != null) ...[
-                _buildAiResultCard(),
-                const SizedBox(height: 24),
+                _buildModernAiReport(theme),
+                const SizedBox(height: 32),
               ],
 
-              // --- Previous Documents ---
-              _buildDocumentHistory(),
+              _buildModernHistorySection(theme),
             ],
           ),
         ),
@@ -209,51 +210,50 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     );
   }
 
-  Widget _buildStatusBanner(bool isVerified) {
+  Widget _buildModernStatusBanner(bool isVerified) {
+    final statusColor = isVerified ? AppColors.success : AppColors.warning;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isVerified
-              ? [Colors.green.withValues(alpha: 0.2), AppColors.cardColor]
-              : [Colors.orange.withValues(alpha: 0.2), AppColors.cardColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isVerified
-              ? Colors.green.withValues(alpha: 0.4)
-              : Colors.orange.withValues(alpha: 0.4),
-        ),
+        color: statusColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: statusColor.withOpacity(0.2), width: 1.5),
       ),
       child: Row(
         children: [
-          Icon(
-            isVerified ? Icons.verified : Icons.pending_outlined,
-            color: isVerified ? Colors.green : Colors.orange,
-            size: 40,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isVerified ? Icons.verified_rounded : Icons.info_outline_rounded,
+              color: statusColor,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isVerified ? 'Account Verified' : 'Verification Required',
+                  isVerified ? 'Fully Verified' : 'Action Required',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isVerified ? Colors.green.shade300 : Colors.orange.shade300,
+                    color: statusColor,
+                    letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isVerified
-                      ? 'Your pharmacy registration has been verified. You have full access.'
-                      : 'Please upload your pharmacy license or registration certificate to activate your account.',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+                      ? 'Your pharmacy is active and ready for logistics operations.'
+                      : 'Upload your valid pharmacy license to unlock all features.',
+                  style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13, height: 1.4),
                 ),
               ],
             ),
@@ -263,157 +263,89 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     );
   }
 
-  Widget _buildUploadSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
+  Widget _buildModernUploadSection(ThemeData theme) {
+    return Card(
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.upload_file, color: AppColors.primaryAccent, size: 22),
-              const SizedBox(width: 8),
-              const Text('Upload Document',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-            ],
+          const Text(
+            'Upload Credentials',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5),
           ),
           const SizedBox(height: 20),
-
-          // Document Type Dropdown
+          
           DropdownButtonFormField<String>(
             value: _selectedDocType,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Document Type',
-              prefixIcon: const Icon(Icons.description, color: Colors.white38),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-              ),
+              prefixIcon: Icon(Icons.assignment_outlined, size: 20),
             ),
-            dropdownColor: AppColors.cardColor,
-            style: const TextStyle(color: Colors.white),
             items: _docTypes.entries
                 .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
                 .toList(),
             onChanged: (v) => setState(() => _selectedDocType = v!),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // File Picker Zone
+          // Dashed Upload Zone
           GestureDetector(
             onTap: _pickFile,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 32),
+              padding: const EdgeInsets.symmetric(vertical: 48),
               decoration: BoxDecoration(
-                color: AppColors.primaryAccent.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.backgroundLight,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.primaryAccent.withValues(alpha: 0.3),
-                  width: 1.5,
+                  color: AppColors.borderLight,
+                  style: BorderStyle.solid, // Flutter doesn't native dash, but we can simulate with colors
+                  width: 1,
                 ),
               ),
               child: Column(
                 children: [
                   Icon(
-                    _selectedFile != null ? Icons.check_circle : Icons.cloud_upload_outlined,
-                    color: _selectedFile != null ? Colors.green : AppColors.primaryAccent,
+                    _selectedFile != null ? Icons.file_present_rounded : Icons.add_photo_alternate_outlined,
+                    color: _selectedFile != null ? AppColors.primaryAccent : AppColors.textSecondaryLight,
                     size: 40,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
-                    _selectedFile != null ? _selectedFile!.name : 'Click to select a file',
+                    _selectedFile != null ? _selectedFile!.name : 'Drop files here or click to browse',
                     style: TextStyle(
-                      color: _selectedFile != null ? Colors.white : Colors.white54,
-                      fontSize: 14,
+                      color: _selectedFile != null ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
+                      fontWeight: _selectedFile != null ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
-                  if (_selectedFile != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '${(_selectedFile!.size / 1024).toStringAsFixed(1)} KB',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'PDF, JPG, or PNG • Max 5MB',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
-                    ),
-                  ],
+                  const SizedBox(height: 4),
+                  const Text(
+                    'PDF, PNG, JPG (Max 5MB)',
+                    style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 12),
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          
+          if (_errorMessage != null) ...[
+             const SizedBox(height: 16),
+             _buildInlineAlert(_errorMessage!, AppColors.error),
+          ],
+          
+          if (_successMessage != null) ...[
+             const SizedBox(height: 16),
+             _buildInlineAlert(_successMessage!, AppColors.success),
+          ],
 
-          // Error / Success Messages
-          if (_errorMessage != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(_errorMessage!,
-                      style: const TextStyle(color: AppColors.error, fontSize: 12))),
-                ],
-              ),
-            ),
-
-          if (_successMessage != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green.shade400, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(_successMessage!,
-                      style: TextStyle(color: Colors.green.shade400, fontSize: 12))),
-                ],
-              ),
-            ),
-
-          // Upload Button
+          const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: _isUploading ? null : _uploadDocument,
-              icon: _isUploading
-                  ? const SizedBox(
-                      height: 18, width: 18,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.upload),
-              label: Text(_isUploading ? 'Uploading...' : 'Upload & Verify'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              child: _isUploading
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)))
+                  : const Text('Analyze & Verify'),
             ),
           ),
         ],
@@ -421,330 +353,195 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     );
   }
 
-  Widget _buildDocumentHistory() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.history, color: Colors.white70, size: 20),
-              const SizedBox(width: 8),
-              const Text('Submitted Documents',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.primaryAccent))
-          else if (_documents.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Icon(Icons.folder_open, color: Colors.white.withValues(alpha: 0.2), size: 48),
-                    const SizedBox(height: 8),
-                    Text('No documents uploaded yet.',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.4))),
-                  ],
-                ),
-              ),
-            )
-          else
-            ..._documents.map((doc) => _buildDocumentTile(doc)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAiResultCard() {
+  Widget _buildModernAiReport(ThemeData theme) {
     final result = _lastAiResult!;
     final status = result['status'] ?? 'Unknown';
     final score = result['ai_score'] ?? 0;
     final extractedData = result['extracted_data'] as Map<String, dynamic>? ?? {};
     final issues = result['issues'] as List<dynamic>? ?? [];
 
-    Color statusColor;
-    IconData statusIcon;
-    String statusLabel;
+    Color statusColor = status == 'Approved' ? AppColors.success : (status == 'Rejected' ? AppColors.error : AppColors.warning);
 
-    switch (status) {
-      case 'Approved':
-        statusColor = Colors.green;
-        statusIcon = Icons.verified;
-        statusLabel = 'APPROVED';
-        break;
-      case 'Rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.gpp_bad;
-        statusLabel = 'REJECTED';
-        break;
-      default:
-        statusColor = Colors.orange;
-        statusIcon = Icons.rate_review;
-        statusLabel = 'UNDER REVIEW';
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-      ),
+    return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Icon(Icons.smart_toy, color: AppColors.primaryAccent, size: 22),
-              const SizedBox(width: 8),
-              const Text('AI Verification Report (V3-ACTIVE)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white38, size: 18),
-                onPressed: () => setState(() => _lastAiResult = null),
-              ),
-            ],
-          ),
-          const Divider(color: Colors.white12, height: 24),
-
-          // Status + Score Row
-          Row(
-            children: [
-              // Status Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(statusIcon, color: statusColor, size: 18),
-                    const SizedBox(width: 6),
-                    Text(statusLabel,
-                        style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                    const Text('AI Analysis Report', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textSecondaryLight),
+                      onPressed: () => setState(() => _lastAiResult = null),
+                    ),
                   ],
                 ),
-              ),
-              const Spacer(),
-              // Confidence Score
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Confidence', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11)),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text('$score',
-                          style: TextStyle(
-                            color: score >= 85
-                                ? Colors.green
-                                : score >= 50
-                                    ? Colors.orange
-                                    : Colors.red,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 28,
-                          )),
-                      Text('/100',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14)),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Confidence Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: score / 100.0,
-              minHeight: 8,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                score >= 85
-                    ? Colors.green
-                    : score >= 50
-                        ? Colors.orange
-                        : Colors.red,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Extracted Data
-          if (extractedData.isNotEmpty) ...[
-            Text('Extracted Data',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-              ),
-              child: Column(
-                children: extractedData.entries.map((entry) {
-                  final label = entry.key
-                      .replaceAll('_', ' ')
-                      .split(' ')
-                      .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
-                      .join(' ');
-                  final value = entry.value?.toString() ?? '';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 120,
-                          child: Text(label,
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-                        ),
-                        Expanded(
-                          child: Text(
-                            value.isNotEmpty ? value : '—',
-                            style: TextStyle(
-                              color: value.isNotEmpty ? Colors.white : Colors.white38,
-                              fontSize: 12,
-                              fontWeight: value.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
+                const SizedBox(height: 24),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Confidence Score', style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 12)),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: LinearProgressIndicator(
+                              value: score / 100,
+                              minHeight: 10,
+                              backgroundColor: AppColors.backgroundLight,
+                              valueColor: AlwaysStoppedAnimation(statusColor),
                             ),
                           ),
-                        ),
-                        Icon(
-                          value.isNotEmpty ? Icons.check_circle : Icons.remove_circle_outline,
-                          color: value.isNotEmpty ? Colors.green : Colors.red.withValues(alpha: 0.5),
-                          size: 14,
-                        ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 32),
+                    Text(
+                      '$score%',
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: statusColor, letterSpacing: -1),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            color: AppColors.backgroundLight.withOpacity(0.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Extracted Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 16),
+                if (extractedData.isEmpty)
+                   const Text('No data readable', style: TextStyle(fontStyle: FontStyle.italic))
+                else
+                   ...extractedData.entries.map((e) => _buildExtractedRow(e.key, e.value.toString())).toList(),
+              ],
+            ),
+          ),
+
+          if (issues.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Potential Risks', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.error)),
+                  const SizedBox(height: 12),
+                  ...issues.map((i) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(i.toString(), style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight))),
                       ],
                     ),
-                  );
-                }).toList(),
+                  )).toList(),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-          ],
-
-          // Issues
-          if (issues.isNotEmpty) ...[
-            Text('Issues Found',
-                style: TextStyle(
-                    color: Colors.orange.shade300, fontSize: 13, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            ...issues.map((issue) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.warning_amber, color: Colors.orange.shade400, size: 14),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(issue.toString(),
-                            style: TextStyle(color: Colors.orange.shade200, fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildDocumentTile(dynamic doc) {
+  Widget _buildExtractedRow(String label, String value) {
+    final prettyLabel = label.replaceAll('_', ' ').toUpperCase();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(prettyLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondaryLight)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight)),
+          ),
+          const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernHistorySection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Verification History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        if (_isLoading)
+           const Center(child: CircularProgressIndicator())
+        else if (_documents.isEmpty)
+           const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No previous uploads')))
+        else
+           ..._documents.map((doc) => _buildModernDocTile(doc)).toList(),
+      ],
+    );
+  }
+
+  Widget _buildModernDocTile(dynamic doc) {
     final status = doc['status'] ?? 'Pending';
-    final aiScore = doc['ai_score'];
-    Color statusColor;
-    IconData statusIcon;
-
-    switch (status) {
-      case 'Approved':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'Rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.orange;
-        statusIcon = Icons.pending;
-    }
-
+    Color color = status == 'Approved' ? AppColors.success : (status == 'Rejected' ? AppColors.error : AppColors.warning);
+    
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Row(
         children: [
-          Icon(Icons.description, color: AppColors.primaryAccent.withValues(alpha: 0.7), size: 28),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.description_outlined, color: AppColors.primaryAccent),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(doc['filename'] ?? 'Unknown',
-                    style: const TextStyle(color: Colors.white, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(
-                  _docTypes[doc['doc_type']] ?? doc['doc_type'] ?? 'Document',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
-                ),
+                Text(doc['filename'] ?? 'document.pdf', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(_docTypes[doc['doc_type']] ?? 'License', style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 12)),
               ],
             ),
           ),
-          if (aiScore != null) ...[
-            Text('$aiScore',
-                style: TextStyle(
-                  color: aiScore >= 85
-                      ? Colors.green
-                      : aiScore >= 50
-                          ? Colors.orange
-                          : Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                )),
-            const SizedBox(width: 8),
-          ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(statusIcon, color: statusColor, size: 14),
-                const SizedBox(width: 4),
-                Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
-            ),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+            child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInlineAlert(String message, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: color, size: 16),
+          const SizedBox(width: 8),
+          Expanded(child: Text(message, style: TextStyle(color: color, fontSize: 12))),
         ],
       ),
     );
