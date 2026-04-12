@@ -24,8 +24,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() {
       if (value.isEmpty) {
         _emailError = null;
-      } else if (!value.contains('@') || !value.contains('.')) {
-        _emailError = 'Invalid email format (missing @ or .)';
+        return;
+      }
+      
+      if (!value.contains('@') || !value.contains('.')) {
+        _emailError = 'Invalid email format';
+        return;
+      }
+
+      if (_selectedRole == 'Pharmacy Store' && !value.toLowerCase().endsWith('@pharmacysupply.com')) {
+        _emailError = 'Must use @pharmacysupply.com';
+      } else if (_selectedRole == 'Warehouse' && !value.toLowerCase().endsWith('@warehousesupply.com')) {
+        _emailError = 'Must use @warehousesupply.com';
       } else {
         _emailError = null;
       }
@@ -176,6 +186,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             onChanged: (value) {
                               setState(() {
                                 _selectedRole = value!;
+                                _validateEmail(_emailController.text); // Re-validate on role change
                               });
                             },
                           ),

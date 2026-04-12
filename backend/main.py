@@ -157,6 +157,16 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if user.role in [models.UserRole.ADMIN, models.UserRole.COMPANY]:
         role_name = "Admin" if user.role == models.UserRole.ADMIN else "Company"
         raise HTTPException(status_code=403, detail=f"{role_name} accounts cannot be created via signup")
+    
+    # Domain Validation
+    email_lower = user.email.lower()
+    user_role_str = str(user.role).lower()
+    
+    if "pharmacy" in user_role_str and not email_lower.endswith("@pharmacysupply.com"):
+        raise HTTPException(status_code=400, detail="Pharmacy users must use @pharmacysupply.com")
+    if "warehouse" in user_role_str and not email_lower.endswith("@warehousesupply.com"):
+        raise HTTPException(status_code=400, detail="Warehouse users must use @warehousesupply.com")
+
     new_user = crud.create_user(db=db, user=user)
     
     # Standardized Pharmacy Role Check (Case-insensitive + Value check)
