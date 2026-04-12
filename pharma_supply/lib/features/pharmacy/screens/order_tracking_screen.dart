@@ -60,6 +60,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
             onPressed: _refreshOrders,
           ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            onPressed: () async {
+              await ApiService.logout();
+              if (context.mounted) context.go('/login');
+            },
+          ),
           const SizedBox(width: 8),
         ],
       ),

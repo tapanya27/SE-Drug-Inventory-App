@@ -55,6 +55,16 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimaryLight),
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            onPressed: () async {
+              await ApiService.logout();
+              if (context.mounted) context.go('/login');
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

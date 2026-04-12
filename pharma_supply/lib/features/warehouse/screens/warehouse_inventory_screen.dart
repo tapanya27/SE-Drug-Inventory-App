@@ -146,6 +146,13 @@ class _WarehouseInventoryScreenState extends State<WarehouseInventoryScreen> {
             tooltip: 'Import from Catalog',
             onPressed: _showCatalogDialog,
           ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            onPressed: () async {
+              await ApiService.logout();
+              if (context.mounted) context.go('/login');
+            },
+          ),
           const SizedBox(width: 8),
         ],
       ),
