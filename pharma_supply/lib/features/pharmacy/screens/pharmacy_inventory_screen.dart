@@ -113,7 +113,7 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24, paddingBottom: 100),
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 0, bottom: 100),
       itemCount: _inventory.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {

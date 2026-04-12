@@ -265,90 +265,92 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
   Widget _buildModernUploadSection(ThemeData theme) {
     return Card(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Upload Credentials',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-          ),
-          const SizedBox(height: 20),
-          
-          DropdownButtonFormField<String>(
-            value: _selectedDocType,
-            decoration: const InputDecoration(
-              labelText: 'Document Type',
-              prefixIcon: Icon(Icons.assignment_outlined, size: 20),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Upload Credentials',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5),
             ),
-            items: _docTypes.entries
-                .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-            onChanged: (v) => setState(() => _selectedDocType = v!),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+            
+            DropdownButtonFormField<String>(
+              value: _selectedDocType,
+              decoration: const InputDecoration(
+                labelText: 'Document Type',
+                prefixIcon: Icon(Icons.assignment_outlined, size: 20),
+              ),
+              items: _docTypes.entries
+                  .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedDocType = v!),
+            ),
+            const SizedBox(height: 20),
 
-          // Dashed Upload Zone
-          GestureDetector(
-            onTap: _pickFile,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 48),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundLight,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.borderLight,
-                  style: BorderStyle.solid, // Flutter doesn't native dash, but we can simulate with colors
-                  width: 1,
+            // Dashed Upload Zone
+            GestureDetector(
+              onTap: _pickFile,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundLight,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.borderLight,
+                    style: BorderStyle.solid,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      _selectedFile != null ? Icons.file_present_rounded : Icons.add_photo_alternate_outlined,
+                      color: _selectedFile != null ? AppColors.primaryAccent : AppColors.textSecondaryLight,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _selectedFile != null ? _selectedFile!.name : 'Drop files here or click to browse',
+                      style: TextStyle(
+                        color: _selectedFile != null ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
+                        fontWeight: _selectedFile != null ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'PDF, PNG, JPG (Max 5MB)',
+                      style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    _selectedFile != null ? Icons.file_present_rounded : Icons.add_photo_alternate_outlined,
-                    color: _selectedFile != null ? AppColors.primaryAccent : AppColors.textSecondaryLight,
-                    size: 40,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _selectedFile != null ? _selectedFile!.name : 'Drop files here or click to browse',
-                    style: TextStyle(
-                      color: _selectedFile != null ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
-                      fontWeight: _selectedFile != null ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'PDF, PNG, JPG (Max 5MB)',
-                    style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 12),
-                  ),
-                ],
+            ),
+            
+            if (_errorMessage != null) ...[
+               const SizedBox(height: 16),
+               _buildInlineAlert(_errorMessage!, AppColors.error),
+            ],
+            
+            if (_successMessage != null) ...[
+               const SizedBox(height: 16),
+               _buildInlineAlert(_successMessage!, AppColors.success),
+            ],
+
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isUploading ? null : _uploadDocument,
+                child: _isUploading
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)))
+                    : const Text('Analyze & Verify'),
               ),
             ),
-          ),
-          
-          if (_errorMessage != null) ...[
-             const SizedBox(height: 16),
-             _buildInlineAlert(_errorMessage!, AppColors.error),
           ],
-          
-          if (_successMessage != null) ...[
-             const SizedBox(height: 16),
-             _buildInlineAlert(_successMessage!, AppColors.success),
-          ],
-
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isUploading ? null : _uploadDocument,
-              child: _isUploading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)))
-                  : const Text('Analyze & Verify'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

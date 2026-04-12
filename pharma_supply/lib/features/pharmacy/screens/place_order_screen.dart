@@ -160,143 +160,207 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
           onPressed: () => context.go('/pharmacy_dashboard'),
         ),
       ),
-                          Text('No inventory found at this warehouse.', style: TextStyle(color: Colors.white38)),
-                        ],
-                      ))
-                    : ListView.builder(
-                        itemCount: _filteredCatalog.length,
-                        itemBuilder: (context, index) {
-                          final item = _filteredCatalog[index];
-                          final id = item['id'] as int;
-                          final inStock = (item['stock'] as int) > 0;
-                          final quantity = _cart[id] ?? 0;
+      body: Column(
+        children: [
+          _buildWarehouseSelector(theme),
+          Expanded(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null 
+                ? _buildErrorState() 
+                : _buildProductCatalog(theme),
+          ),
+          if (_totalPrice > 0) _buildCheckoutSummary(theme),
+        ],
+      ),
+    );
+  }
 
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item['name'],
-                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Price: \$${((item['price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
-                                          style: Theme.of(context).textTheme.bodyMedium,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              inStock ? Icons.check_circle : Icons.cancel,
-                                              size: 16,
-                                              color: inStock ? AppColors.primaryAccent : AppColors.error,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              inStock ? 'In Stock (${item['stock']})' : 'Out of Stock',
-                                              style: TextStyle(
-                                                color: inStock ? AppColors.primaryAccent : AppColors.error,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '[Owner: ${item['owner_id']}]',
-                                              style: const TextStyle(color: Colors.white38, fontSize: 10, fontStyle: FontStyle.italic),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.background,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.remove, size: 20),
-                                          onPressed: (!inStock || quantity <= 0) ? null : () {
-                                            setState(() {
-                                              _cart[id] = quantity - 1;
-                                            });
-                                          },
-                                        ),
-                                        Text(
-                                          '$quantity',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add, size: 20),
-                                          onPressed: (!inStock || (item['stock'] as int) <= quantity) ? null : () {
-                                            setState(() {
-                                              _cart[id] = quantity + 1;
-                                            });
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+  Widget _buildWarehouseSelector(ThemeData theme) {
+    if (_warehouses.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Select Fulfillment Warehouse',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondaryLight),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.borderLight),
+              color: AppColors.backgroundLight,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: _selectedWarehouseId,
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primaryAccent),
+                items: _warehouses.map((w) {
+                  return DropdownMenuItem<int>(
+                    value: w['id'],
+                    child: Text(w['name'], style: const TextStyle(fontWeight: FontWeight.w600)),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _selectedWarehouseId = val;
+                      _cart.clear();
+                    });
+                    _fetchWarehouseInventory(val);
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCatalog(ThemeData theme) {
+    if (_catalog.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.borderLight),
+            const SizedBox(height: 16),
+            const Text('No products available from this supplier', style: TextStyle(color: AppColors.textSecondaryLight)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(24),
+      itemCount: _catalog.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final item = _catalog[index];
+        final id = item['id'] as int;
+        final qty = _cart[id] ?? 0;
+        final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text('\$${price.toStringAsFixed(2)} per unit', style: const TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_rounded, size: 18),
+                        onPressed: qty > 0 ? () => setState(() => _cart[id] = qty - 1) : null,
+                        color: qty > 0 ? AppColors.textPrimaryLight : AppColors.borderLight,
                       ),
+                      Text(
+                        '$qty',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        onPressed: () => setState(() => _cart[id] = qty + 1),
+                        color: AppColors.primaryAccent,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCheckoutSummary(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5)),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Order Total', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(
+                  '\$${_totalPrice.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primaryAccent),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: _submitOrder,
+                child: const Text('Proceed to Checkout', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
 
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: AppColors.cardColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                offset: Offset(0, -5),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Amount',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  Text(
-                    '\$${_totalPrice.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryAccent,
-                        ),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: _totalPrice > 0 ? _submitOrder : null,
-                icon: const Icon(Icons.send),
-                label: const Text('Submit Order'),
-              ),
-            ],
-          ),
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text('Sync Error: $_error', textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _fetchInitialData,
+              child: const Text('Retry Connection'),
+            ),
+          ],
         ),
       ),
     );

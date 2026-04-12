@@ -175,14 +175,20 @@ class _PaymentSimulationScreenState extends State<PaymentSimulationScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.primaryAccent.withValues(alpha: 0.15),
-                      AppColors.cardColor,
+                      const Color(0xFF1E293B), // Deep Slate
+                      const Color(0xFF0F172A), // Deeper Slate
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primaryAccent.withValues(alpha: 0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +219,7 @@ class _PaymentSimulationScreenState extends State<PaymentSimulationScreen>
                         ),
                       );
                     }),
-                    const Divider(color: Colors.white24, height: 24),
+                    const Divider(color: Colors.white12, height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -244,10 +250,10 @@ class _PaymentSimulationScreenState extends State<PaymentSimulationScreen>
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.credit_card, color: Colors.white, size: 20),
+                        const Icon(Icons.credit_card, color: Color(0xFF1E293B), size: 20),
                         const SizedBox(width: 8),
                         const Text('Card Details',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -399,25 +405,25 @@ class _PaymentSimulationScreenState extends State<PaymentSimulationScreen>
   }) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
+      style: const TextStyle(color: Color(0xFF1E293B), fontSize: 15),
       inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+        labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+        prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
+        fillColor: Color(0xFFF1F5F9),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppColors.primaryAccent),
+          borderSide: const BorderSide(color: Color(0xFF635BFF), width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),

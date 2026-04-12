@@ -177,63 +177,65 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Login Form Card
                   Card(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'Email Address',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: AppColors.textPrimaryLight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Email Address',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.textPrimaryLight,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _emailController,
-                          onChanged: _validateEmail,
-                          decoration: InputDecoration(
-                            hintText: 'alex@company.com',
-                            prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
-                            errorText: _emailError,
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _emailController,
+                            onChanged: _validateEmail,
+                            decoration: InputDecoration(
+                              hintText: 'alex@company.com',
+                              prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
+                              errorText: _emailError,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Password',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: AppColors.textPrimaryLight,
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Password',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.textPrimaryLight,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          onChanged: _validatePassword,
-                          decoration: InputDecoration(
-                            hintText: '••••••••',
-                            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                            errorText: _passwordError,
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            onChanged: _validatePassword,
+                            decoration: InputDecoration(
+                              hintText: '••••••••',
+                              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                              errorText: _passwordError,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
-                          child: _isLoading 
-                            ? const SizedBox(
-                                height: 20, 
-                                width: 20, 
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2, 
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              ) 
-                            : const Text('Sign In'),
-                        ),
-                      ],
+                          const SizedBox(height: 32),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            child: _isLoading 
+                              ? const SizedBox(
+                                  height: 20, 
+                                  width: 20, 
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2, 
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                ) 
+                              : const Text('Sign In'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

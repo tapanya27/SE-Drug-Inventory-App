@@ -14,6 +14,16 @@ import os
 import uuid
 import json
 from dotenv import load_dotenv
+import logging
+
+# Configure File Logging for Debugging
+logging.basicConfig(
+    filename="payment_debug.log",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
 # Create tables
@@ -144,8 +154,9 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    if user.role == models.UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Admin accounts cannot be created via signup")
+    if user.role in [models.UserRole.ADMIN, models.UserRole.COMPANY]:
+        role_name = "Admin" if user.role == models.UserRole.ADMIN else "Company"
+        raise HTTPException(status_code=403, detail=f"{role_name} accounts cannot be created via signup")
     new_user = crud.create_user(db=db, user=user)
     
     # Standardized Pharmacy Role Check (Case-insensitive + Value check)
@@ -411,13 +422,21 @@ def cancel_order(order_id: int, db: Session = Depends(get_db), current_user: mod
 async def create_payment_intent(request: Request, current_user: models.User = Depends(get_current_user)):
     try:
         # DYNAMIC KEY LOADING
-        stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-        print(f"DEBUG: Initializing Stripe with key: {stripe.api_key[:15]}...")
+        stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
         
         data = await request.json()
-        # Amount should be in cents (e.g., $10.00 -> 1000)
-        amount = int(float(data.get("amount")) * 100)
+        logger.debug(f"PaymentIntent Request Data: {data}")
         
+        raw_amount = data.get("amount")
+        if raw_amount is None:
+            raise ValueError("Amount is missing from request body")
+            
+        # Amount should be in cents (e.g., $10.00 -> 1000)
+        amount = int(float(raw_amount) * 100)
+        
+        if amount < 50:
+            raise ValueError(f"Amount {amount} is below the Stripe minimum of 50 cents")
+            
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency="usd",
@@ -425,12 +444,17 @@ async def create_payment_intent(request: Request, current_user: models.User = De
             metadata={"user_id": current_user.id}
         )
         
+        logger.info(f"PaymentIntent created successfully: {intent.id} for user {current_user.id}")
+        
         return {
             "paymentIntent": intent.client_secret,
-            "publishableKey": os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+            "publishableKey": os.getenv("STRIPE_PUBLISHABLE_KEY", "").strip()
         }
     except Exception as e:
-        print(f"ERROR: PaymentIntent failed: {str(e)}")
+        import traceback
+        error_msg = f"PaymentIntent failed: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
+        print(f"ERROR: {error_msg}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
