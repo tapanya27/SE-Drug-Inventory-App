@@ -52,11 +52,28 @@ class _LoginScreenState extends State<LoginScreen> {
   void _checkExistingToken() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ApiService.token != null) {
-        // Just navigate to dashboard, router will redirect based on role and verification
-        context.go('/pharmacy_dashboard');
+        final role = ApiService.userRole;
+        final isVerified = ApiService.isVerified;
+
+        if (role == 'Warehouse') {
+          context.go('/warehouse_dashboard');
+        } else if (role == 'Company') {
+          context.go('/company_dashboard');
+        } else if (role == 'Admin') {
+          context.go('/admin_dashboard');
+        } else if (role == 'PHARMACY' || role == 'Pharmacy Store') {
+          if (isVerified) {
+            context.go('/pharmacy_dashboard');
+          } else {
+            context.go('/document_upload');
+          }
+        } else {
+          context.go('/pharmacy_dashboard');
+        }
       }
     });
   }
+
 
   void _login() async {
     final email = _emailController.text;
@@ -69,19 +86,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      if (!mounted) return;
+      final userData = await ApiService.login(email, password);
       
-      // Just navigate to dashboard, router will redirect based on role and verification
-      context.go('/pharmacy_dashboard');
+      if (!mounted) return;
+
+      // Navigate based on role and verification status
+      final role = userData['role'];
+      final bool isVerified = userData['is_verified'] ?? false;
+
+      if (role == 'Warehouse') {
+        context.go('/warehouse_dashboard');
+      } else if (role == 'Company') {
+        context.go('/company_dashboard');
+      } else if (role == 'Admin') {
+        context.go('/admin_dashboard');
+      } else if (role == 'PHARMACY' || role == 'Pharmacy Store') {
+        if (isVerified) {
+          context.go('/pharmacy_dashboard');
+        } else {
+          context.go('/document_upload');
+        }
+      } else {
+        // Fallback for any other roles
+        context.go('/pharmacy_dashboard');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(
+          content: Text('Login Failed: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

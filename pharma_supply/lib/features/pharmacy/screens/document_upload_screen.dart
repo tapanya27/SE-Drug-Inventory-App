@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
 
@@ -20,6 +21,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   List<dynamic> _documents = [];
   PlatformFile? _selectedFile;
   String _selectedDocType = 'pharmacy_license';
+  Map<String, dynamic>? _lastAiResult;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -101,23 +103,60 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     });
 
     try {
-      await ApiService.uploadDocument(
+      final result = await ApiService.uploadDocument(
         _selectedDocType,
-        '', // path is unavailable on web, bytes are used instead
+        '',
         _selectedFile!.name,
         _selectedFile!.bytes!,
       );
 
       if (mounted) {
+        final status = result['status'] ?? '';
+        final aiScore = result['ai_score'];
+        final extractedRaw = result['extracted_data'];
+        final issuesRaw = result['verification_issues'];
+
+        Map<String, dynamic> extractedData = {};
+        List<dynamic> issues = [];
+
+        try {
+          if (extractedRaw != null && extractedRaw is String) {
+            extractedData = jsonDecode(extractedRaw);
+          }
+        } catch (_) {}
+
+        try {
+          if (issuesRaw != null && issuesRaw is String) {
+            issues = jsonDecode(issuesRaw);
+          }
+        } catch (_) {}
+
         setState(() {
-          _successMessage = 'Document verified successfully! Your account is now approved. Use the sidebar or click below to go to the dashboard.';
+          _lastAiResult = {
+            'status': status,
+            'ai_score': aiScore,
+            'extracted_data': extractedData,
+            'issues': issues,
+          };
           _selectedFile = null;
+
+          if (status == 'Approved') {
+            _successMessage =
+                'Document verified successfully! Your account is now approved.';
+          } else if (status == 'Pending') {
+            _successMessage =
+                'Document uploaded. AI flagged it for manual review (Score: $aiScore).';
+          } else {
+            _errorMessage =
+                'Document was rejected by AI verification (Score: $aiScore). Please re-upload a valid license.';
+          }
         });
         _loadDocuments();
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = e.toString().replaceFirst('Exception: ', ''));
+        setState(() => _errorMessage =
+            e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -152,6 +191,12 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               // --- Upload Section (only if not verified) ---
               if (!isVerified) ...[
                 _buildUploadSection(),
+                const SizedBox(height: 24),
+              ],
+
+              // --- AI Verification Results ---
+              if (_lastAiResult != null) ...[
+                _buildAiResultCard(),
                 const SizedBox(height: 24),
               ],
 
@@ -420,8 +465,215 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     );
   }
 
+  Widget _buildAiResultCard() {
+    final result = _lastAiResult!;
+    final status = result['status'] ?? 'Unknown';
+    final score = result['ai_score'] ?? 0;
+    final extractedData = result['extracted_data'] as Map<String, dynamic>? ?? {};
+    final issues = result['issues'] as List<dynamic>? ?? [];
+
+    Color statusColor;
+    IconData statusIcon;
+    String statusLabel;
+
+    switch (status) {
+      case 'Approved':
+        statusColor = Colors.green;
+        statusIcon = Icons.verified;
+        statusLabel = 'APPROVED';
+        break;
+      case 'Rejected':
+        statusColor = Colors.red;
+        statusIcon = Icons.gpp_bad;
+        statusLabel = 'REJECTED';
+        break;
+      default:
+        statusColor = Colors.orange;
+        statusIcon = Icons.rate_review;
+        statusLabel = 'UNDER REVIEW';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.smart_toy, color: AppColors.primaryAccent, size: 22),
+              const SizedBox(width: 8),
+              const Text('AI Verification Report (V3-ACTIVE)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white38, size: 18),
+                onPressed: () => setState(() => _lastAiResult = null),
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white12, height: 24),
+
+          // Status + Score Row
+          Row(
+            children: [
+              // Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 18),
+                    const SizedBox(width: 6),
+                    Text(statusLabel,
+                        style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              // Confidence Score
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('Confidence', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text('$score',
+                          style: TextStyle(
+                            color: score >= 85
+                                ? Colors.green
+                                : score >= 50
+                                    ? Colors.orange
+                                    : Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 28,
+                          )),
+                      Text('/100',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14)),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Confidence Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: score / 100.0,
+              minHeight: 8,
+              backgroundColor: Colors.white.withValues(alpha: 0.08),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                score >= 85
+                    ? Colors.green
+                    : score >= 50
+                        ? Colors.orange
+                        : Colors.red,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Extracted Data
+          if (extractedData.isNotEmpty) ...[
+            Text('Extracted Data',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              ),
+              child: Column(
+                children: extractedData.entries.map((entry) {
+                  final label = entry.key
+                      .replaceAll('_', ' ')
+                      .split(' ')
+                      .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+                      .join(' ');
+                  final value = entry.value?.toString() ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 120,
+                          child: Text(label,
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                        ),
+                        Expanded(
+                          child: Text(
+                            value.isNotEmpty ? value : '—',
+                            style: TextStyle(
+                              color: value.isNotEmpty ? Colors.white : Colors.white38,
+                              fontSize: 12,
+                              fontWeight: value.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          value.isNotEmpty ? Icons.check_circle : Icons.remove_circle_outline,
+                          color: value.isNotEmpty ? Colors.green : Colors.red.withValues(alpha: 0.5),
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Issues
+          if (issues.isNotEmpty) ...[
+            Text('Issues Found',
+                style: TextStyle(
+                    color: Colors.orange.shade300, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ...issues.map((issue) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.orange.shade400, size: 14),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(issue.toString(),
+                            style: TextStyle(color: Colors.orange.shade200, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildDocumentTile(dynamic doc) {
     final status = doc['status'] ?? 'Pending';
+    final aiScore = doc['ai_score'];
     Color statusColor;
     IconData statusIcon;
 
@@ -465,6 +717,19 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               ],
             ),
           ),
+          if (aiScore != null) ...[
+            Text('$aiScore',
+                style: TextStyle(
+                  color: aiScore >= 85
+                      ? Colors.green
+                      : aiScore >= 50
+                          ? Colors.orange
+                          : Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                )),
+            const SizedBox(width: 8),
+          ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(

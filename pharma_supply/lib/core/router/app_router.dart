@@ -20,46 +20,71 @@ class AppRouter {
     initialLocation: '/login',
     redirect: (context, state) {
       final isLoggedIn = ApiService.token != null;
+      final role = ApiService.userRole;
+      final isVerified = ApiService.isVerified;
+      
       final isGoingToLogin = state.matchedLocation == '/login';
       final isGoingToSignup = state.matchedLocation == '/signup';
+
+      // Helper to determine the correct home for the current role
+      String getHomePath() {
+        if (role == 'Warehouse') return '/warehouse_dashboard';
+        if (role == 'Company') return '/company_dashboard';
+        if (role == 'Admin') return '/admin_dashboard';
+        if (role == 'PHARMACY' || role == 'Pharmacy Store') {
+          return isVerified ? '/pharmacy_dashboard' : '/document_upload';
+        }
+        return '/login';
+      }
 
       // 1. Unauthenticated users can only be on login/signup
       if (!isLoggedIn) {
         return (isGoingToLogin || isGoingToSignup) ? null : '/login';
       }
 
-      // 2. Logged in users shouldn't go to login/signup
+      // 2. Logged in users shouldn't be on login/signup
       if (isGoingToLogin || isGoingToSignup) {
-        final role = ApiService.userRole;
-        if (role == 'Warehouse') return '/warehouse_dashboard';
-        if (role == 'Company') return '/company_dashboard';
-        if (role == 'Admin') return '/admin_dashboard';
-        
-        // Pharmacy: check verification status for redirect
-        if (role == 'PHARMACY' || role == 'Pharmacy Store') {
-          return ApiService.isVerified ? '/pharmacy_dashboard' : '/document_upload';
-        }
-        return '/pharmacy_dashboard';
+        return getHomePath();
       }
 
-      // 3. Pharmacy Verification Enforcement
-      final role = ApiService.userRole;
-      if (role == 'PHARMACY' || role == 'Pharmacy Store') {
-        final isVerified = ApiService.isVerified;
-        final isGoingToUpload = state.matchedLocation == '/document_upload';
-        
-        if (!isVerified && !isGoingToUpload) {
-          // Unverified pharmacy must be on upload screen
-          return '/document_upload';
-        }
-        if (isVerified && isGoingToUpload) {
-          // Verified pharmacy shouldn't be on upload screen
-          return '/pharmacy_dashboard';
-        }
+      // 3. Role-Based Access Guards
+      final currentPath = state.matchedLocation;
+      
+      // Pharmacy-only paths (including verification check)
+      final isPharmacyPath = currentPath.startsWith('/pharmacy_') || 
+                            currentPath == '/place_order' || 
+                            currentPath == '/track_deliveries' || 
+                            currentPath == '/document_upload' ||
+                            currentPath == '/payment_simulation';
+      
+      final isWarehousePath = currentPath.startsWith('/warehouse_');
+      final isCompanyPath = currentPath.startsWith('/company_');
+      final isAdminPath = currentPath.startsWith('/admin_');
+
+      bool isUserPharmacy = (role == 'PHARMACY' || role == 'Pharmacy Store');
+
+      // GUARD: Non-pharmacy roles cannot access pharmacy paths
+      if (isPharmacyPath && !isUserPharmacy) return getHomePath();
+      
+      // GUARD: Non-warehouse roles cannot access warehouse paths
+      if (isWarehousePath && role != 'Warehouse') return getHomePath();
+      
+      // GUARD: Non-company roles cannot access company paths
+      if (isCompanyPath && role != 'Company') return getHomePath();
+      
+      // GUARD: Non-admin roles cannot access admin paths
+      if (isAdminPath && role != 'Admin') return getHomePath();
+
+      // 4. Pharmacy Verification Enforcement (Only for Pharmacies)
+      if (isUserPharmacy) {
+        final isGoingToUpload = currentPath == '/document_upload';
+        if (!isVerified && !isGoingToUpload) return '/document_upload';
+        if (isVerified && isGoingToUpload) return '/pharmacy_dashboard';
       }
 
       return null;
     },
+
     routes: [
       GoRoute(
         path: '/login',
@@ -100,10 +125,14 @@ class AppRouter {
           final amount = (extra['amount'] as num?)?.toDouble() ?? 0.0;
           final rawItems = extra['items'] as List<dynamic>? ?? [];
           final items = rawItems.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          final warehouseId = extra['warehouse_id'] as int?;
+          
           return PaymentSimulationScreen(
             amount: amount,
             items: items,
+            warehouseId: warehouseId,
           );
+
         },
       ),
       GoRoute(

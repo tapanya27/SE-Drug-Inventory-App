@@ -1,16 +1,20 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Body, Request, UploadFile, File, Form
+from fastapi import FastAPI, Depends, HTTPException, status, Body, Request, UploadFile, File, Form, Query
 from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import timedelta, datetime
 from database import engine, get_db, Base
 import models, schemas, crud, auth_utils
+from verification_service import LicenseVerifier
 import stripe
 import os
 import uuid
+import json
+from dotenv import load_dotenv
+load_dotenv()
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -18,11 +22,32 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Pharma Supply System API")
 
 # Stripe Configuration
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+# (Key now assigned dynamically in request handlers to ensure sync with .env)
 
 from fastapi.middleware.cors import CORSMiddleware
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, auth_utils.SECRET_KEY, algorithms=[auth_utils.ALGORITHM])
+        if payload.get("type") != "access":
+            raise credentials_exception
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    user = crud.get_user_by_email(db, email=email)
+    if user is None:
+        raise credentials_exception
+    return user
 
 # Add CORS middleware
 app.add_middleware(
@@ -37,10 +62,80 @@ app.add_middleware(
 async def log_requests(request: Request, call_next):
     auth_header = request.headers.get("Authorization", "No Token")
     token_preview = auth_header[:15] + "..." if len(auth_header) > 15 else auth_header
-    print(f"DEBUG: Incoming Request: {request.method} {request.url} | Auth: {token_preview}")
+    print(f"DEBUG: Incoming Request: {request.method} {request.url} | Params: {request.query_params} | Auth: {token_preview}")
     response = await call_next(request)
     print(f"DEBUG: Response Status: {response.status_code}")
     return response
+
+@app.get("/test_query")
+def test_query(warehouse_id: Optional[int] = Query(None)):
+    return {"received_warehouse_id": warehouse_id}
+
+# --- Inventory Endpoints (Moved to Top for Priority) ---
+
+def _get_inventory_internal(
+    request: Request,
+    warehouse_id: Optional[int],
+    mode: Optional[str],
+    skip: int,
+    limit: int,
+    db: Session,
+    current_user: models.User
+):
+    user_role = str(current_user.role).lower()
+    
+    # 1. Company Role
+    if "company" in user_role:
+        results = db.query(models.Medicine).filter(
+            models.Medicine.is_requested == True,
+            models.Medicine.owner_id != None
+        ).all()
+        return [schemas.MedicineResponse.from_orm(med) for med in results]
+    
+    # 2. Pharmacy Role
+    if "pharmacy" in user_role:
+        # If warehouse_id is specified, we are browsing that specific warehouse
+        if warehouse_id is not None and warehouse_id > 0:
+             return crud.get_medicines(db, owner_id=int(warehouse_id), skip=skip, limit=limit)
+        
+        # If mode is marketplace, show all warehouse items
+        if mode == "marketplace":
+             return crud.get_marketplace_medicines(db, skip=skip, limit=limit)
+        
+        # Default for Pharmacy: Show their OWN stock
+        return crud.get_medicines(db, owner_id=current_user.id, skip=skip, limit=limit)
+
+    # 3. Warehouse Role
+    if "warehouse" in user_role:
+        return crud.get_medicines(db, owner_id=current_user.id, skip=skip, limit=limit)
+        
+    # Default Fallback (General Catalog for Admin)
+    return crud.get_catalog(db)
+
+@app.get("/inventory", response_model=List[schemas.MedicineResponse])
+async def read_inventory(
+    request: Request,
+    warehouse_id: Optional[int] = Query(None),
+    mode: Optional[str] = Query(None), # 'personal' or 'marketplace'
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    """General inventory endpoint with role-based filtering."""
+    return _get_inventory_internal(request, warehouse_id, mode, skip, limit, db, current_user)
+
+@app.get("/inventory/warehouse/{warehouse_id}", response_model=List[schemas.MedicineResponse])
+async def read_inventory_by_warehouse(
+    request: Request,
+    warehouse_id: int,
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    """Specific warehouse browsing."""
+    return _get_inventory_internal(request, warehouse_id, None, skip, limit, db, current_user)
 
 # --- Auth Endpoints ---
 
@@ -50,11 +145,19 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     new_user = crud.create_user(db=db, user=user)
+    
+    # Standardized Pharmacy Role Check (Case-insensitive + Value check)
+    user_role_str = str(new_user.role).lower()
+    is_pharmacy = "pharmacy" in user_role_str or new_user.role == models.UserRole.PHARMACY
+    
     # Auto-verify non-pharmacy users
-    if new_user.role != models.UserRole.PHARMACY:
+    if not is_pharmacy:
+        print(f"DEBUG: Auto-verifying non-pharmacy user {new_user.id} (Role: {new_user.role})")
         new_user.is_verified = True
         db.commit()
-        db.refresh(new_user)
+    else:
+        print(f"DEBUG: Pharmacy user {new_user.id} registered. Verification REQUIRED.")
+        
     return new_user
 
 @app.post("/login")
@@ -136,45 +239,7 @@ async def refresh_token(refresh_token: str = Body(..., embed=True), db: Session 
         "token_type": "bearer"
     }
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, auth_utils.SECRET_KEY, algorithms=[auth_utils.ALGORITHM])
-        if payload.get("type") != "access":
-            raise credentials_exception
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-        
-    user = crud.get_user_by_email(db, email=email)
-    if user is None:
-        raise credentials_exception
-    return user
 
-# --- Inventory Endpoints ---
-
-@app.get("/inventory", response_model=List[schemas.MedicineResponse])
-def read_inventory(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # If the user is a Company, show all items that have is_requested=True across the whole system
-    # BUT EXCLUDE global catalog items (owner_id IS NOT NULL)
-    if current_user.role == models.UserRole.COMPANY:
-        results = db.query(models.Medicine).filter(
-            models.Medicine.is_requested == True,
-            models.Medicine.owner_id != None
-        ).all()
-        return [schemas.MedicineResponse.from_orm(med) for med in results]
-    
-    # If the user is a Warehouse, show their specific inventory
-    # If the user is a Pharmacy, show all warehouse-owned medicines to search FROM
-    owner_id = current_user.id if current_user.role == models.UserRole.WAREHOUSE else None
-    show_all = current_user.role == models.UserRole.PHARMACY
-    return crud.get_medicines(db, owner_id=owner_id, show_all_warehouses=show_all, skip=skip, limit=limit)
 
 @app.put("/inventory/{medicine_id}/request")
 def request_medicine_stock(medicine_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -211,6 +276,12 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), curr
 def read_catalog(db: Session = Depends(get_db)):
     return crud.get_catalog(db)
 
+@app.get("/warehouses", response_model=List[schemas.UserResponse])
+def list_warehouses(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """Publicly list all active warehouses for Pharmacies to order from."""
+    return db.query(models.User).filter(models.User.role == models.UserRole.WAREHOUSE).all()
+
+
 @app.get("/inventory/low-stock", response_model=List[schemas.MedicineResponse])
 def read_low_stock(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # Company can see all low-stock warehouse items
@@ -242,10 +313,18 @@ def read_orders(db: Session = Depends(get_db), current_user: models.User = Depen
             res = schemas.OrderResponse.from_orm(o)
             res.user_name = current_user.name
             res.user_role = current_user.role
+            res.warehouse_id = o.fulfiller_id
+            res.warehouse_name = o.fulfiller.name if o.fulfiller else "Unknown"
             output.append(res)
         return output
-    # Warehouse and Admin/Company see everything with requester info
+        
+    # If the user is a Warehouse, only show orders assigned to them
+    if current_user.role == models.UserRole.WAREHOUSE:
+        return crud.get_all_orders(db, fulfiller_id=current_user.id)
+        
+    # Admin/Company see everything
     return crud.get_all_orders(db)
+
 
 @app.get("/warehouse/stats")
 def warehouse_stats(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -329,6 +408,10 @@ def cancel_order(order_id: int, db: Session = Depends(get_db), current_user: mod
 @app.post("/payments/create-intent")
 async def create_payment_intent(request: Request, current_user: models.User = Depends(get_current_user)):
     try:
+        # DYNAMIC KEY LOADING
+        stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+        print(f"DEBUG: Initializing Stripe with key: {stripe.api_key[:15]}...")
+        
         data = await request.json()
         # Amount should be in cents (e.g., $10.00 -> 1000)
         amount = int(float(data.get("amount")) * 100)
@@ -345,7 +428,9 @@ async def create_payment_intent(request: Request, current_user: models.User = De
             "publishableKey": os.getenv("STRIPE_PUBLISHABLE_KEY", "")
         }
     except Exception as e:
+        print(f"ERROR: PaymentIntent failed: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
+
 
 # --- Document Verification Endpoints (Pharmacy Only) ---
 
@@ -377,6 +462,9 @@ async def upload_document(
     current_user: models.User = Depends(get_current_user)
 ):
     """Upload a verification document (Pharmacy users only)."""
+    print("\n" + "="*60)
+    print(">>> V2 SECURITY ENGINE ONLINE: ENTERING UPLOAD ENDPOINT <<<")
+    print("="*60 + "\n")
     if current_user.role != models.UserRole.PHARMACY:
         raise HTTPException(status_code=403, detail="Document verification is only required for Pharmacy accounts.")
     
@@ -400,21 +488,65 @@ async def upload_document(
     with open(file_path, "wb") as f:
         f.write(content)
     
-    # Auto-approve if file passes validation
+    # ========== AI VERIFICATION ==========
+    verifier = LicenseVerifier()
+    ai_result = verifier.verify(file_path, file.filename, file_size)
+    
+    print("\n" + "!"*60)
+    print(">>> V3 CANARY PULSE: SECURITY ENGINE ACTIVATED <<<")
+    print("!"*60 + "\n")
+    print(f"[AI] Verification Result: {json.dumps(ai_result, indent=2)}")
+    
+    # Map AI status to DocStatus with strictly enforced score checks
+    ai_status = ai_result["status"].strip().upper()
+    ai_score = int(ai_result.get("confidence_score") or 0) # Force int, default 0
+    
+    print(f"[AI] Decision Logic -> Status: {ai_status}, Score: {ai_score} (Type: {type(ai_score)})")
+    
+    # FORCED FAIL-SAFE: Any score below 85 CANNOT be fully Approved for Pharmacy
+    if ai_status == "APPROVED" and ai_score >= 85:
+        doc_status = models.DocStatus.APPROVED
+    elif ai_status == "REJECTED" or ai_score < 50:
+        doc_status = models.DocStatus.REJECTED
+        if ai_score < 50:
+            ai_result["issues"].append(f"Confidence score {ai_score} is too low for security clearance.")
+    else:  # REVIEW (50-84)
+        doc_status = models.DocStatus.PENDING
+    
+    # Build rejection reason if applicable
+    rejection_reason = None
+    if ai_result["issues"]:
+        rejection_reason = "; ".join(ai_result["issues"])
+    
     doc = models.Document(
         user_id=current_user.id,
         filename=file.filename,
         file_path=unique_filename,
         doc_type=doc_type,
-        status=models.DocStatus.APPROVED,
+        status=doc_status,
+        ai_score=ai_result["confidence_score"],
+        extracted_data=json.dumps(ai_result["extracted_data"]),
+        verification_issues=json.dumps(ai_result["issues"]),
+        rejection_reason=rejection_reason,
         reviewed_at=datetime.utcnow()
     )
     db.add(doc)
     
-    # Mark user as verified
-    current_user.is_verified = True
+    print(f"[AI] FINAL GUARD CHECK -> Status: {ai_status}, Score: {ai_score}")
+    
+    # Only auto-verify if AI APPROVED AND score is high enough (Zero-Trust Guard)
+    if doc_status == models.DocStatus.APPROVED:
+        print(f"[AI] AUTO-APPROVING USER {current_user.id} (Score: {ai_score})")
+        current_user.is_verified = True
+    else:
+        # PENDING or REJECTED result revokes/prevents auto-verification
+        print(f"[AI] REVOKING/DENYING VERIFICATION FOR USER {current_user.id} (Status: {doc_status})")
+        current_user.is_verified = False
+    
+    db.add(current_user) # Explicitly add to session for tracking
     db.commit()
     db.refresh(doc)
+    db.refresh(current_user)
     
     return doc
 
@@ -443,9 +575,23 @@ def get_verification_status(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Check the current user's verification status."""
+    """Check the current user's verification status with self-healing audit."""
+    # SELF-HEALING AUDIT: If pharmacy is verified but has no approved docs, reset them
+    if current_user.role == models.UserRole.PHARMACY and current_user.is_verified:
+        has_approved = db.query(models.Document).filter(
+            models.Document.user_id == current_user.id,
+            models.Document.status == models.DocStatus.APPROVED
+        ).first() is not None
+        
+        if not has_approved:
+            print(f"CRITICAL: Found verified pharmacy {current_user.id} with NO approved docs. Resetting.")
+            current_user.is_verified = False
+            db.commit()
+            db.refresh(current_user)
+
     return {
         "is_verified": current_user.is_verified,
         "role": current_user.role,
-        "requires_verification": current_user.role == models.UserRole.PHARMACY
+        "requires_verification": current_user.role == models.UserRole.PHARMACY,
+        "canary_version": "V3-ACTIVE-HEALED"
     }

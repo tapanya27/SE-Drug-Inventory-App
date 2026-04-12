@@ -26,9 +26,11 @@ class MedicineBase(BaseModel):
 
 class MedicineResponse(MedicineBase):
     id: int
+    owner_id: Optional[int] = None
     owner_name: Optional[str] = None
     class Config:
         orm_mode = True
+
 
 class OrderItemBase(BaseModel):
     medicine_id: int
@@ -36,6 +38,7 @@ class OrderItemBase(BaseModel):
 
 class OrderCreate(BaseModel):
     items: List[OrderItemBase]
+    warehouse_id: Optional[int] = None
 
 class OrderResponse(BaseModel):
     id: int
@@ -45,8 +48,11 @@ class OrderResponse(BaseModel):
     items_summary: str
     user_name: Optional[str] = None
     user_role: Optional[str] = None
+    warehouse_id: Optional[int] = None
+    warehouse_name: Optional[str] = None
     class Config:
         orm_mode = True
+
 
 class Token(BaseModel):
     access_token: str
@@ -62,6 +68,9 @@ class DocumentResponse(BaseModel):
     doc_type: str
     status: DocStatus
     rejection_reason: Optional[str] = None
+    ai_score: Optional[int] = None
+    extracted_data: Optional[str] = None
+    verification_issues: Optional[str] = None
     uploaded_at: datetime
     reviewed_at: Optional[datetime] = None
     class Config:

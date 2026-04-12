@@ -23,7 +23,7 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
 
   Future<void> _fetchInventory() async {
     try {
-      final data = await ApiService.getInventory();
+      final data = await ApiService.getInventory(mode: 'personal');
       setState(() {
         _inventory = data;
         _isLoading = false;

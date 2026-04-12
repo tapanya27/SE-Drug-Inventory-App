@@ -47,13 +47,16 @@ class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
+    fulfiller_id = Column(Integer, ForeignKey("users.id"), nullable=True) # The warehouse fulfilling this order
     order_date = Column(DateTime, default=datetime.utcnow)
     status = Column(Enum(OrderStatus), default=OrderStatus.PROCESSING)
     total_amount = Column(Float)
     items_summary = Column(String) # For simplified UI display
 
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
+    fulfiller = relationship("User", foreign_keys=[fulfiller_id])
     items = relationship("OrderItem", back_populates="order")
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -79,6 +82,9 @@ class Document(Base):
     doc_type = Column(String)  # e.g. "pharmacy_license", "registration_cert"
     status = Column(Enum(DocStatus), default=DocStatus.PENDING)
     rejection_reason = Column(String, nullable=True)
+    ai_score = Column(Integer, nullable=True)
+    extracted_data = Column(String, nullable=True) # JSON string
+    verification_issues = Column(String, nullable=True) # JSON string
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     reviewed_at = Column(DateTime, nullable=True)
 

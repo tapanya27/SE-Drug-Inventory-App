@@ -4,7 +4,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://127.0.0.1:8005';
   static String? _token;
   static String? _refreshToken;
   static SharedPreferences? _prefs;
@@ -114,15 +114,33 @@ class ApiService {
   }
 
   // --- Inventory ---
-  static Future<List<dynamic>> getInventory() async {
+  static Future<List<dynamic>> getInventory({int? warehouseId, String? mode}) async {
+    String url = '$baseUrl/inventory';
+    List<String> params = [];
+    
+    if (warehouseId != null && warehouseId > 0) {
+      url = '$baseUrl/inventory/warehouse/$warehouseId';
+    } else {
+      if (mode != null) params.add('mode=$mode');
+    }
+    
+    if (params.isNotEmpty) {
+      url += '?${params.join('&')}';
+    }
+    
+    print('DEBUG: Calling Inventory API: $url');
     final response = await _authenticatedRequest(
-      () => http.get(Uri.parse('$baseUrl/inventory'), headers: _headers),
+      () => http.get(Uri.parse(url), headers: _headers),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load inventory (${response.statusCode})');
     }
+  }
+
+  static Future<List<dynamic>> getMarketplaceInventory() async {
+    return getInventory(mode: 'marketplace');
   }
 
   static Future<List<dynamic>> getCatalog() async {
@@ -135,6 +153,18 @@ class ApiService {
       throw Exception('Failed to load catalog (${response.statusCode})');
     }
   }
+
+  static Future<List<dynamic>> getWarehouses() async {
+    final response = await _authenticatedRequest(
+      () => http.get(Uri.parse('$baseUrl/warehouses'), headers: _headers),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load warehouses (${response.statusCode})');
+    }
+  }
+
 
   static Future<void> addToInventory(int medicineId) async {
     final response = await _authenticatedRequest(
@@ -161,12 +191,15 @@ class ApiService {
   }
 
   // --- Orders ---
-  static Future<void> placeOrder(List<Map<String, dynamic>> items) async {
+  static Future<void> placeOrder(List<Map<String, dynamic>> items, {int? warehouseId}) async {
     final response = await _authenticatedRequest(
       () => http.post(
         Uri.parse('$baseUrl/orders'),
         headers: _headers,
-        body: jsonEncode({'items': items}),
+        body: jsonEncode({
+          'items': items,
+          'warehouse_id': warehouseId,
+        }),
       ),
     );
 
@@ -174,6 +207,7 @@ class ApiService {
       throw Exception('Failed to place order (${response.statusCode})');
     }
   }
+
 
   static Future<List<dynamic>> getOrders() async {
     final response = await _authenticatedRequest(
@@ -316,9 +350,11 @@ class ApiService {
     final response = await http.Response.fromStream(streamed);
 
     if (response.statusCode == 200) {
-      // Update local verification status
-      await _prefs?.setBool('is_verified', true);
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      // Synchronize verification status with server response
+      bool approved = data['status'] == 'Approved';
+      await _prefs?.setBool('is_verified', approved);
+      return data;
     } else {
       final detail = jsonDecode(response.body)['detail'] ?? 'Upload failed';
       throw Exception(detail);

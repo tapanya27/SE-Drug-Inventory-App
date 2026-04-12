@@ -86,7 +86,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   'currentStep': _getStepFromStatus(order['status'] ?? 'Processing'),
                   'items': order['items_summary'] ?? 'N/A',
                   'total': (order['total_amount'] as num?)?.toDouble() ?? 0.0,
+                  'supplier': order['warehouse_name'] ?? 'Unknown',
                 };
+
                 return _OrderTrackingCard(
                   order: trackingData,
                   onStatusUpdate: _refreshOrders,
@@ -147,7 +149,11 @@ class _OrderTrackingCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('Supplier: ${order['supplier']}', 
+                      style: const TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
                   Text('Items: ${order['items']}', style: Theme.of(context).textTheme.bodyMedium),
+
                   const SizedBox(height: 16),
                   _buildTrackingStepper(context, order['currentStep'] as int),
                   const SizedBox(height: 24),

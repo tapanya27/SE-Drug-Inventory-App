@@ -19,19 +19,30 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
-def get_medicines(db: Session, owner_id: int = None, show_all_warehouses: bool = False, skip: int = 0, limit: int = 100):
-    query = db.query(models.Medicine)
-    if owner_id:
-        # Strictly show only owner-specific items (no global items)
-        query = query.filter(models.Medicine.owner_id == owner_id)
-    elif show_all_warehouses:
-        # Show all items owned by ANY warehouse (for Pharmacies to order from)
-        query = query.filter(models.Medicine.owner_id != None)
-    else:
-        # If no owner_id and not showing all, show purely global catalog (used by Admin/Company)
-        query = query.filter(models.Medicine.owner_id == None)
+def get_medicines(db: Session, owner_id: int = None, skip: int = 0, limit: int = 100):
+    """
+    Fetch medicines strictly owned by a specific user.
+    Used for personal 'Store Inventory' or 'Warehouse Dashboard'.
+    """
+    print(f"DATABASE QUERY: get_medicines (Personal) for owner_id: {owner_id}")
+    
+    query = db.query(models.Medicine).filter(models.Medicine.owner_id == owner_id)
+    results = query.offset(skip).limit(limit).all()
+    
+    print(f"Total personal results found: {len(results)}")
+    return [schemas.MedicineResponse.from_orm(med) for med in results]
+
+def get_marketplace_medicines(db: Session, skip: int = 0, limit: int = 100):
+    """
+    Fetch all medicines owned by ANY warehouse.
+    Used by Pharmacies to browse and order from.
+    """
+    print("DATABASE QUERY: get_marketplace_medicines")
+    query = db.query(models.Medicine).filter(models.Medicine.owner_id != None)
     
     results = query.offset(skip).limit(limit).all()
+    
+    print(f"Total marketplace results found: {len(results)}")
     return [schemas.MedicineResponse.from_orm(med) for med in results]
 
 def get_catalog(db: Session):
@@ -66,7 +77,12 @@ def create_order(db: Session, order: schemas.OrderCreate, user_id: int):
     total = 0.0
     summary_parts = []
     
-    db_order = models.Order(user_id=user_id, total_amount=0, items_summary="")
+    db_order = models.Order(
+        user_id=user_id, 
+        fulfiller_id=order.warehouse_id,
+        total_amount=0, 
+        items_summary=""
+    )
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
@@ -90,26 +106,36 @@ def create_order(db: Session, order: schemas.OrderCreate, user_id: int):
     db.refresh(db_order)
     return db_order
 
+
 def get_user_orders(db: Session, user_id: int):
     return db.query(models.Order).filter(models.Order.user_id == user_id).all()
 
-def get_all_orders(db: Session):
-    orders = db.query(models.Order).all()
+def get_all_orders(db: Session, fulfiller_id: int = None):
+    query = db.query(models.Order)
+    if fulfiller_id:
+        query = query.filter(models.Order.fulfiller_id == fulfiller_id)
+    
+    orders = query.all()
     output = []
     for o in orders:
         ord_res = schemas.OrderResponse.from_orm(o)
         ord_res.user_name = o.user.name if o.user else "Unknown"
         ord_res.user_role = o.user.role if o.user else "Unknown"
+        ord_res.warehouse_id = o.fulfiller_id
+        ord_res.warehouse_name = o.fulfiller.name if o.fulfiller else "Unknown"
         output.append(ord_res)
     return output
+
 
 def update_order_status(db: Session, order_id: int, status: models.OrderStatus, fulfiller_id: int = None):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     warnings = []
     
     if db_order:
-        # If we are dispatching this order, deduct stock now
-        if db_order.status != status and status == models.OrderStatus.DISPATCHED:
+        old_status = db_order.status
+        
+        # 1. DISPATCH Logic (Deduct from Warehouse)
+        if old_status != status and status == models.OrderStatus.DISPATCHED:
             print(f"DEBUG: Processing dispatch for Order #{order_id} by Fulfiller {fulfiller_id}. Deducting stock...")
             for item in db_order.items:
                 medicine = item.medicine
@@ -117,24 +143,48 @@ def update_order_status(db: Session, order_id: int, status: models.OrderStatus, 
                     target_medicine = medicine
                     
                     # SELF-HEALING LOGIC:
-                    # If the medicine in the order is a Global Catalog item (Owner is None),
-                    # attempt to find the fulfiller's private copy of this medicine by name.
-                    if medicine.owner_id is None and fulfiller_id is not None:
+                    target_fulfiller_id = db_order.fulfiller_id or fulfiller_id
+                    
+                    if medicine.owner_id is None and target_fulfiller_id is not None:
                         warehouse_copy = db.query(models.Medicine).filter(
                             models.Medicine.name == medicine.name,
-                            models.Medicine.owner_id == fulfiller_id
+                            models.Medicine.owner_id == target_fulfiller_id
                         ).first()
                         if warehouse_copy:
-                            print(f"DEBUG: Redirecting deduction from Template (ID: {medicine.id}) to Warehouse Copy (ID: {warehouse_copy.id})")
+                            print(f"DEBUG: Redirecting deduction to Warehouse Copy (ID: {warehouse_copy.id})")
                             target_medicine = warehouse_copy
-                    
-                    print(f"DEBUG: Medicine {target_medicine.name} (ID: {target_medicine.id}, Owner: {target_medicine.owner_id}) Stock: {target_medicine.stock} -> {target_medicine.stock - item.quantity}")
+
+                    print(f"DEBUG: Medicine {target_medicine.name} ID: {target_medicine.id} Stock: {target_medicine.stock} -> {target_medicine.stock - item.quantity}")
                     target_medicine.stock -= item.quantity
                     
-                    if target_medicine.stock <= 100:
+                    if target_medicine.stock <= target_medicine.threshold:
                         warnings.append(f"{target_medicine.name} stock critically low ({target_medicine.stock} left).")
                 else:
-                    print(f"WARNING: Item in Order #{order_id} has no medicine reference (ID: {item.medicine_id})")
+                    print(f"WARNING: Item in Order #{order_id} has no medicine reference")
+
+        # 2. DELIVERY Logic (Add to Pharmacy)
+        if old_status != status and status == models.OrderStatus.DELIVERED:
+            print(f"DEBUG: Processing DELIVERY for Order #{order_id}. Adding to Pharmacy {db_order.user_id}...")
+            for item in db_order.items:
+                # Find or create this medicine record for the Pharmacy
+                pharmacy_med = db.query(models.Medicine).filter(
+                    models.Medicine.name == item.medicine.name,
+                    models.Medicine.owner_id == db_order.user_id
+                ).first()
+                
+                if pharmacy_med:
+                    print(f"DEBUG: Updating existing stock for {item.medicine.name} (+{item.quantity})")
+                    pharmacy_med.stock += item.quantity
+                else:
+                    print(f"DEBUG: Creating new stock record for {item.medicine.name} (Pharmacy {db_order.user_id})")
+                    new_med = models.Medicine(
+                        name=item.medicine.name,
+                        price=item.medicine.price,
+                        stock=item.quantity,
+                        threshold=item.medicine.threshold,
+                        owner_id=db_order.user_id
+                    )
+                    db.add(new_med)
         
         db_order.status = status
         db.commit()
@@ -143,10 +193,10 @@ def update_order_status(db: Session, order_id: int, status: models.OrderStatus, 
     return db_order, warnings
 
 def get_warehouse_stats(db: Session, owner_id: int):
-    # Count pending orders that contain medicines owned by this warehouse
+    # Count pending orders explicitly assigned to this warehouse
     pending_dispatch = db.query(models.Order).filter(
         models.Order.status == models.OrderStatus.PROCESSING,
-        models.Order.items.any(models.OrderItem.medicine.has(models.Medicine.owner_id == owner_id))
+        models.Order.fulfiller_id == owner_id
     ).count()
 
     # Count medicines owned by this warehouse that are at or below threshold
@@ -155,12 +205,12 @@ def get_warehouse_stats(db: Session, owner_id: int):
         models.Medicine.stock <= models.Medicine.threshold
     ).count()
     
-    # Count delivered orders containing medicines owned by this warehouse
+    # Count delivered orders explicitly assigned to this warehouse
     today_start = datetime.combine(date.today(), datetime.min.time())
     delivered_today = db.query(models.Order).filter(
         models.Order.status == models.OrderStatus.DELIVERED,
         models.Order.order_date >= today_start,
-        models.Order.items.any(models.OrderItem.medicine.has(models.Medicine.owner_id == owner_id))
+        models.Order.fulfiller_id == owner_id
     ).count()
     
     return {
@@ -168,6 +218,7 @@ def get_warehouse_stats(db: Session, owner_id: int):
         "low_stock": low_stock,
         "delivered_today": delivered_today
     }
+
 
 def request_stock(db: Session, medicine_id: int):
     db_medicine = db.query(models.Medicine).filter(models.Medicine.id == medicine_id).first()

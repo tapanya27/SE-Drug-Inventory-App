@@ -8,7 +8,14 @@ import '../../../core/services/stripe_service.dart';
 class PaymentSimulationScreen extends StatefulWidget {
   final double amount;
   final List<Map<String, dynamic>> items;
-  const PaymentSimulationScreen({super.key, required this.amount, required this.items});
+  final int? warehouseId;
+  const PaymentSimulationScreen({
+    super.key, 
+    required this.amount, 
+    required this.items,
+    this.warehouseId,
+  });
+
 
   @override
   State<PaymentSimulationScreen> createState() => _PaymentSimulationScreenState();
@@ -86,7 +93,8 @@ class _PaymentSimulationScreenState extends State<PaymentSimulationScreen>
       }
 
       // 3. Finalize the order in the database
-      await ApiService.placeOrder(widget.items);
+      await ApiService.placeOrder(widget.items, warehouseId: widget.warehouseId);
+
 
       if (mounted) {
         setState(() => _paymentSuccess = true);
