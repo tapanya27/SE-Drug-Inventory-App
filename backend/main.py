@@ -144,6 +144,8 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+    if user.role == models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin accounts cannot be created via signup")
     new_user = crud.create_user(db=db, user=user)
     
     # Standardized Pharmacy Role Check (Case-insensitive + Value check)

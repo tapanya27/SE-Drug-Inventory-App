@@ -79,6 +79,14 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: const Text('My Inventory'),
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/pharmacy_inventory');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.local_shipping_outlined),
               title: const Text('Track Deliveries'),
               onTap: () {

@@ -158,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           labelText: 'Select Role',
                           prefixIcon: Icon(Icons.work_outline),
                         ),
-                        items: ['Pharmacy Store', 'Warehouse', 'Company', 'Admin'].map((role) {
+                        items: ['Pharmacy Store', 'Warehouse', 'Company'].map((role) {
                           return DropdownMenuItem(
                             value: role,
                             child: Text(role),
