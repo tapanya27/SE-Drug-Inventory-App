@@ -42,8 +42,9 @@ class AppRouter {
         return (isGoingToLogin || isGoingToSignup) ? null : '/login';
       }
 
-      // 2. Logged in users shouldn't be on login/signup
+      // 2. Logged in users shouldn't be on login/signup (unless Admin is provisioning)
       if (isGoingToLogin || isGoingToSignup) {
+        if (isGoingToSignup && role == 'Admin') return null; 
         return getHomePath();
       }
 
