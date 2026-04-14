@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/widgets/app_widgets.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -32,23 +33,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
           'Security Console',
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.refresh_rounded,
             onPressed: _refreshUsers,
+            tooltip: 'Refresh',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.logout_rounded,
             onPressed: () async {
               await ApiService.logout();
               if (context.mounted) context.go('/login');
             },
+            tooltip: 'Sign Out',
           ),
           const SizedBox(width: 8),
         ],
@@ -128,24 +130,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         final email = user['email'] ?? 'No email associated';
         final role = user['role'] ?? 'Restricted';
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.borderLight),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        return AppCard(
+          borderRadius: 20,
+          child: AppListTile(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             leading: CircleAvatar(
               radius: 24,
               backgroundColor: AppColors.primaryAccent.withOpacity(0.12),
               child: Text(
                 name[0].toUpperCase(),
-                style: const TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold, fontSize: 18, inherit: true),
               ),
             ),
-            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            subtitle: Text(email, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight)),
+            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, inherit: true)),
+            subtitle: Text(email, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight, inherit: true)),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -155,7 +153,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               child: Text(
                 role.toUpperCase(),
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryAccent, letterSpacing: 0.5),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryAccent, letterSpacing: 0.5, inherit: true),
               ),
             ),
           ),
@@ -175,9 +173,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(height: 16),
             Text('Security Error: $error', textAlign: TextAlign.center),
             const SizedBox(height: 24),
-            ElevatedButton(
+            AppButton(
               onPressed: _refreshUsers,
-              child: const Text('Try Again'),
+              text: 'Try Again',
             ),
           ],
         ),

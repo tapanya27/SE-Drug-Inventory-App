@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/widgets/app_widgets.dart';
 
 class CompanyDashboardScreen extends StatefulWidget {
   const CompanyDashboardScreen({super.key});
@@ -36,23 +37,24 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
           'Supply Chain Center',
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.refresh_rounded,
             onPressed: _refreshData,
+            tooltip: 'Refresh',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.logout_rounded,
             onPressed: () async {
               await ApiService.logout();
               if (context.mounted) context.go('/login');
             },
+            tooltip: 'Sign Out',
           ),
           const SizedBox(width: 8),
         ],
@@ -194,25 +196,31 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
             }
 
             return Column(
-              children: criticalItems.map((item) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.error.withOpacity(0.2)),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Location: ${item['owner_name']}', style: const TextStyle(fontSize: 12)),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(
-                      'STK: ${item['stock']}/${item['threshold']}',
-                      style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 11),
+              children: criticalItems.map((item) => AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                borderRadius: 16,
+                border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, inherit: true)),
+                          const SizedBox(height: 4),
+                          Text('Location: ${item['owner_name']}', style: const TextStyle(fontSize: 12, inherit: true)),
+                        ],
+                      ),
                     ),
-                  ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                      child: Text(
+                        'STK: ${item['stock']}/${item['threshold']}',
+                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 11, inherit: true),
+                      ),
+                    ),
+                  ],
                 ),
               )).toList(),
             );
@@ -247,7 +255,7 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
           );
         }
 
-        return Card(
+        return AppCard(
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -255,30 +263,14 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
             separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderLight),
             itemBuilder: (context, index) {
               final item = requestedItems[index];
-              return Padding(
+              return AppListTile(
                 padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const SizedBox(height: 4),
-                          Text('WH: ${item['owner_name'] ?? 'Primary'} • Stock: ${item['stock']}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryAccent,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () => _handleReplenish(item),
-                      child: const Text('Audit & Dispatch', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
+                title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, inherit: true)),
+                subtitle: Text('WH: ${item['owner_name'] ?? 'Primary'} • Stock: ${item['stock']}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, inherit: true)),
+                trailing: AppButton(
+                  height: 40,
+                  text: 'Audit & Dispatch',
+                  onPressed: () => _handleReplenish(item),
                 ),
               );
             },

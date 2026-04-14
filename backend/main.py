@@ -355,7 +355,7 @@ def warehouse_stats(db: Session = Depends(get_db), current_user: models.User = D
         raise HTTPException(status_code=403, detail="Not authorized")
     return crud.get_warehouse_stats(db, owner_id=current_user.id)
 
-@app.get("/admin/users")
+@app.get("/admin/users", response_model=List[schemas.UserResponse])
 def list_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role != models.UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")

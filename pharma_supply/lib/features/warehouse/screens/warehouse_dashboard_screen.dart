@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/widgets/app_widgets.dart';
 
 class WarehouseDashboardScreen extends StatefulWidget {
   const WarehouseDashboardScreen({super.key});
@@ -39,19 +40,20 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
-        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.refresh_rounded,
             onPressed: _refreshOrders,
+            tooltip: 'Refresh',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.logout_rounded,
             onPressed: () async {
               await ApiService.logout();
               if (context.mounted) context.go('/login');
             },
+            tooltip: 'Sign Out',
           ),
           const SizedBox(width: 8),
         ],
@@ -227,7 +229,7 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
           );
         }
 
-        return Card(
+        return AppCard(
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -244,24 +246,21 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
   }
 
   Widget _buildOrderRow(BuildContext context, dynamic order) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    return AppListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       leading: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.inventory_2_outlined, color: AppColors.primaryAccent),
       ),
-      title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, inherit: true)),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Text(order['items_summary'] ?? 'N/A', maxLines: 1, overflow: TextOverflow.ellipsis),
+        child: Text(order['items_summary'] ?? 'N/A', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(inherit: true)),
       ),
-      trailing: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryAccent,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: const Size(100, 40),
-        ),
+      trailing: AppButton(
+        height: 40,
+        text: 'Dispatch',
         onPressed: () async {
           try {
             final warnings = await ApiService.updateOrderStatus(order['id'], 'Dispatched');
@@ -275,7 +274,6 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
             }
           }
         },
-        child: const Text('Dispatch', style: TextStyle(fontSize: 13)),
       ),
     );
   }
@@ -301,9 +299,9 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
           )).toList(),
         ),
         actions: [
-          TextButton(
+          AppTextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Acknowledged'),
+            text: 'Acknowledged',
           ),
         ],
       ),
@@ -373,29 +371,27 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: color, size: 28),
+    return AppCard(
+      padding: const EdgeInsets.all(20.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, fontWeight: FontWeight.w500, inherit: true), maxLines: 1),
+                Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5, inherit: true)),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, fontWeight: FontWeight.w500), maxLines: 1),
-                  Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/widgets/app_widgets.dart';
 
 class PharmacyDashboardScreen extends StatefulWidget {
   const PharmacyDashboardScreen({super.key});
@@ -37,24 +38,27 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
-        backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 2,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.notifications_none_rounded,
             onPressed: () {},
+            tooltip: 'Notifications',
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimaryLight),
+          AppIconButton(
+            icon: Icons.refresh_rounded,
             onPressed: _refreshOrders,
+            tooltip: 'Refresh',
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+          AppIconButton(
+            icon: Icons.logout_rounded,
             onPressed: () async {
               await ApiService.logout();
               if (context.mounted) context.go('/login');
             },
+            color: AppColors.error,
+            tooltip: 'Sign Out',
           ),
           const SizedBox(width: 8),
         ],
@@ -98,10 +102,11 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                           ),
                         ],
                       ),
-                      ElevatedButton.icon(
+                      AppButton(
                         onPressed: () => context.go('/place_order'),
-                        icon: const Icon(Icons.add_rounded, size: 20),
-                        label: const Text('New Order'),
+                        icon: const Icon(Icons.add_rounded, size: 20, color: Colors.white),
+                        text: 'New Order',
+                        height: 44,
                       ),
                     ],
                   ),
@@ -146,9 +151,9 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                         'Recent Orders',
                         style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                       ),
-                      TextButton(
+                      AppTextButton(
                         onPressed: () {},
-                        child: const Text('View All'),
+                        text: 'View All',
                       ),
                     ],
                   ),
@@ -157,7 +162,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                   if (orders.isEmpty)
                     _buildEmptyState()
                   else
-                    Card(
+                    AppCard(
                       child: ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -245,21 +250,18 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
   }
 
   Widget _buildDrawerItem(IconData icon, String title, bool selected, VoidCallback onTap, {Color? color}) {
-    return ListTile(
+    return AppListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Icon(icon, color: color ?? (selected ? AppColors.primaryAccent : AppColors.textSecondaryLight), size: 22),
       title: Text(
         title, 
         style: TextStyle(
           color: color ?? (selected ? AppColors.primaryAccent : AppColors.textPrimaryLight),
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          inherit: true,
         ),
       ),
       onTap: onTap,
-      dense: true,
-      selected: selected,
-      selectedTileColor: AppColors.primaryLight,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }
 
@@ -270,8 +272,8 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
     else if (status == 'Dispatched') statusColor = AppColors.info;
     else statusColor = AppColors.success;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    return AppListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -280,8 +282,8 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
         ),
         child: const Icon(Icons.medication_outlined, color: AppColors.primaryAccent),
       ),
-      title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(order['items_summary'] ?? 'Items hidden'),
+      title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, inherit: true)),
+      subtitle: Text(order['items_summary'] ?? 'Items hidden', style: const TextStyle(inherit: true)),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
@@ -290,7 +292,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
         ),
         child: Text(
           status, 
-          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12, inherit: true),
         ),
       ),
     );
@@ -323,14 +325,14 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             const SizedBox(height: 16),
             Text(isAuthError ? 'Session Expired' : 'Failed to load dashboard', style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
-            ElevatedButton(
+            AppButton(
               onPressed: isAuthError 
                 ? () async {
                     await ApiService.logout();
                     if (context.mounted) context.go('/login');
                   }
                 : _refreshOrders,
-              child: Text(isAuthError ? 'Sign In Again' : 'Retry'),
+              text: isAuthError ? 'Sign In Again' : 'Retry',
             ),
           ],
         ),
@@ -349,39 +351,37 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
+    return AppCard(
+      padding: const EdgeInsets.all(20.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -1),
-                  ),
-                ],
-              ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13, fontWeight: FontWeight.w500, inherit: true),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -1, inherit: true),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_widgets.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -15,27 +16,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _selectedRole = 'Pharmacy Store';
-
   bool _isLoading = false;
+  String? _nameError;
   String? _emailError;
   String? _passwordError;
+
+  void _validateName(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        _nameError = 'Name is required';
+      } else if (value.length < 2) {
+        _nameError = 'Name is too short';
+      } else {
+        _nameError = null;
+      }
+    });
+  }
 
   void _validateEmail(String value) {
     setState(() {
       if (value.isEmpty) {
-        _emailError = null;
-        return;
-      }
-      
-      if (!value.contains('@') || !value.contains('.')) {
-        _emailError = 'Invalid email format';
-        return;
-      }
-
-      if (_selectedRole == 'Pharmacy Store' && !value.toLowerCase().endsWith('@pharmacysupply.com')) {
-        _emailError = 'Must use @pharmacysupply.com';
-      } else if (_selectedRole == 'Warehouse' && !value.toLowerCase().endsWith('@warehousesupply.com')) {
-        _emailError = 'Must use @warehousesupply.com';
+        _emailError = 'Email is required';
+      } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+        _emailError = 'Enter a valid email address';
       } else {
         _emailError = null;
       }
@@ -43,30 +46,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _validatePassword(String value) {
-    final passwordRegex = RegExp(r"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
     setState(() {
       if (value.isEmpty) {
-        _passwordError = null;
-      } else if (value.length < 8) {
-        _passwordError = 'Minimum 8 characters required';
-      } else if (!passwordRegex.hasMatch(value)) {
-        _passwordError = 'Require Uppercase, Number, and Special Char';
+        _passwordError = 'Password is required';
+      } else if (value.length < 6) {
+        _passwordError = 'Password must be at least 6 characters';
       } else {
         _passwordError = null;
       }
     });
   }
 
-  void _signUp() async {
-    final email = _emailController.text;
-    final password = _passwordController.text;
+  Future<void> _signUp() async {
+    _validateName(_nameController.text);
+    _validateEmail(_emailController.text);
+    _validatePassword(_passwordController.text);
 
-    _validateEmail(email);
-    _validatePassword(password);
-
-    if (_emailError != null || _passwordError != null) return;
+    if (_nameError != null || _emailError != null || _passwordError != null) return;
 
     setState(() => _isLoading = true);
+    
     try {
       await ApiService.signup(
         _nameController.text,
@@ -75,17 +74,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _selectedRole,
       );
 
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created! Please sign in.')),
-      );
-      context.go('/login');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please login.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        context.go('/login');
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -96,45 +102,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => context.go('/login'),
-        ),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Create an account',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.displayLarge?.copyWith(
-                      fontSize: 32,
-                      letterSpacing: -0.5,
-                      color: AppColors.textPrimaryLight,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AppIconButton(
+                          icon: Icons.arrow_back_ios_new_rounded,
+                          onPressed: () => context.go('/login'),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Join the Pharma Supply logistics network',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 16,
+                    const SizedBox(height: 24),
+
+                    Text(
+                      'Create an account',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: 32,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                  
-                  Card(
-                    child: Padding(
+                    const SizedBox(height: 8),
+                    Text(
+                      'Join the Pharma Supply logistics network',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    
+                    AppCard(
                       padding: const EdgeInsets.all(32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,9 +149,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           _buildFieldLabel('Full Name / Store Name'),
                           TextField(
                             controller: _nameController,
-                            decoration: const InputDecoration(
+                            onChanged: _validateName,
+                            decoration: InputDecoration(
                               hintText: 'e.g. Central Pharmacy',
-                              prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                              prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                              errorText: _nameError,
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -186,47 +195,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             onChanged: (value) {
                               setState(() {
                                 _selectedRole = value!;
-                                _validateEmail(_emailController.text); // Re-validate on role change
+                                _validateEmail(_emailController.text);
                               });
                             },
                           ),
                           const SizedBox(height: 32),
                           
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : _signUp,
-                            child: _isLoading 
-                              ? const SizedBox(
-                                  height: 20, 
-                                  width: 20, 
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Text('Create Account'),
+                          AppButton(
+                            text: 'Create Account',
+                            isLoading: _isLoading,
+                            onPressed: _signUp,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Already have an account?', style: theme.textTheme.bodyMedium),
-                      TextButton(
-                        onPressed: () => context.go('/login'),
-                        child: Text(
-                          'Sign in',
-                          style: TextStyle(
-                            color: theme.primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Already have an account?', style: theme.textTheme.bodyMedium),
+                        AppTextButton(
+                          text: 'Sign in',
+                          onPressed: () => context.go('/login'),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -243,7 +238,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 14,
-          color: AppColors.textPrimaryLight,
+          inherit: true,
         ),
       ),
     );
