@@ -118,9 +118,9 @@ class _WarehouseInventoryScreenState extends State<WarehouseInventoryScreen> {
   String _calculateStatus(int stock, int threshold, bool isRequested) {
     if (isRequested) return 'Requested';
     if (stock <= 0) return 'Out of Stock';
-    if (stock <= threshold) return 'Critical';
-    if (stock <= threshold * 1.5) return 'Low';
-    return 'Healthy';
+    if (stock >= threshold) return 'Healthy';
+    if (stock <= threshold * 0.5) return 'Critical';
+    return 'Low';
   }
 
   @override
@@ -326,17 +326,48 @@ class _WarehouseInventoryScreenState extends State<WarehouseInventoryScreen> {
   }
 
   Future<void> _handleRequestStock(dynamic item) async {
-    try {
-      await ApiService.requestStock(item['id']);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Replenishment request sent for ${item['name']}.')),
+    final quantityController = TextEditingController(text: '500');
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Request ${item['name']}'),
+          content: TextField(
+            controller: quantityController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Quantity to request'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryAccent),
+              onPressed: () {
+                final qty = int.tryParse(quantityController.text) ?? 500;
+                Navigator.pop(context, qty);
+              },
+              child: const Text('Request'),
+            ),
+          ],
         );
-        _fetchInventory();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      },
+    );
+
+    if (result != null && result > 0) {
+      try {
+        await ApiService.requestStock(item['id'], result);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Replenishment request sent for ${item['name']}.')),
+          );
+          _fetchInventory();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       }
     }
   }

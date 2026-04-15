@@ -23,6 +23,7 @@ class User(Base):
     password_hash = Column(String)
     role = Column(Enum(UserRole))
     is_verified = Column(Boolean, default=False)
+    license_number = Column(String, nullable=True)
 
     medicines = relationship("Medicine", back_populates="owner")
     documents = relationship("Document", back_populates="owner")
@@ -35,6 +36,7 @@ class Medicine(Base):
     stock = Column(Integer)
     threshold = Column(Integer)
     is_requested = Column(Boolean, default=False)
+    requested_quantity = Column(Integer, default=0)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # NULL means global catalog
 
     owner = relationship("User", back_populates="medicines")
@@ -48,7 +50,8 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     fulfiller_id = Column(Integer, ForeignKey("users.id"), nullable=True) # The warehouse fulfilling this order
-    order_date = Column(DateTime, default=datetime.utcnow)
+    order_date = Column(DateTime, default=datetime.now)
+    delivery_date = Column(DateTime, nullable=True)
     status = Column(Enum(OrderStatus), default=OrderStatus.PROCESSING)
     total_amount = Column(Float)
     items_summary = Column(String) # For simplified UI display
@@ -85,7 +88,7 @@ class Document(Base):
     ai_score = Column(Integer, nullable=True)
     extracted_data = Column(String, nullable=True) # JSON string
     verification_issues = Column(String, nullable=True) # JSON string
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=datetime.now)
     reviewed_at = Column(DateTime, nullable=True)
 
     owner = relationship("User", back_populates="documents")

@@ -162,7 +162,7 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                       ),
                     ),
                     AppTextButton(
-                      onPressed: () {},
+                      onPressed: () => context.go('/track_deliveries'),
                       text: 'View All',
                     ),
                   ],
@@ -230,7 +230,15 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
                   'Order #${order['id']}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text('Total: \$${order['total_amount']} • ${order['created_at'].toString().split('T')[0]}'),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    'Total: \$${order['total_amount']} • ${order['items_summary'] ?? 'Unknown items'}\n'
+                    'Ordered: ${order['order_date']?.toString().split('T')[0] ?? 'N/A'}'
+                    '${order['status'] == 'Delivered' && order['delivery_date'] != null ? '\nDelivered: ${order['delivery_date'].toString().split('T')[0]}' : ''}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
@@ -343,6 +351,14 @@ class _PharmacyDashboardScreenState extends State<PharmacyDashboardScreen> {
             onTap: () {
               Navigator.pop(context);
               context.go('/place_order');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.local_shipping_rounded),
+            title: const Text('Track Orders'),
+            onTap: () {
+              Navigator.pop(context);
+              context.go('/track_deliveries');
             },
           ),
           ListTile(

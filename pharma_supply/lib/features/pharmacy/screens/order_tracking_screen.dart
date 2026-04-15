@@ -28,7 +28,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   int _getStepFromStatus(String status) {
     switch (status) {
       case 'Processing':
-        return 1;
+        return 0;
       case 'Dispatched':
         return 2;
       case 'Delivered':
@@ -237,7 +237,7 @@ class _OrderTrackingCard extends StatelessWidget {
                         ),
                         onPressed: () => _handleConfirm(context),
                         icon: const Icon(Icons.done_all_rounded, size: 18),
-                        label: const Text('Mark as Delivered', style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: const Text('Confirm Delivery', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                 ],
@@ -274,7 +274,7 @@ class _OrderTrackingCard extends StatelessWidget {
   }
 
   Widget _buildTrackingStepper(BuildContext context, int currentStep) {
-    final steps = ['Placed', 'In Process', 'Dispatched', 'Delivered'];
+    final steps = ['Pending', 'Dispatched', 'In Transit', 'Delivered'];
     
     return Row(
       children: List.generate(steps.length, (index) {

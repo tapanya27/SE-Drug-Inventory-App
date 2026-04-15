@@ -265,10 +265,19 @@ async def refresh_token(refresh_token: str = Body(..., embed=True), db: Session 
 
 
 @app.put("/inventory/{medicine_id}/request")
-def request_medicine_stock(medicine_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def request_medicine_stock(medicine_id: int, quantity: int = Body(..., embed=True), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role != models.UserRole.WAREHOUSE:
         raise HTTPException(status_code=403, detail="Not authorized")
-    db_medicine = crud.request_stock(db, medicine_id=medicine_id)
+    db_medicine = crud.request_stock(db, medicine_id=medicine_id, quantity=quantity)
+    if db_medicine is None:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+    return db_medicine
+
+@app.put("/inventory/{medicine_id}/consume")
+def consume_medicine_stock(medicine_id: int, quantity: int = Body(..., embed=True), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != models.UserRole.PHARMACY:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    db_medicine = crud.consume_stock(db, medicine_id=medicine_id, quantity=quantity)
     if db_medicine is None:
         raise HTTPException(status_code=404, detail="Medicine not found")
     return db_medicine
@@ -309,7 +318,7 @@ def list_warehouses(db: Session = Depends(get_db), current_user: models.User = D
 def read_low_stock(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # Company can see all low-stock warehouse items
     results = db.query(models.Medicine).filter(
-        models.Medicine.stock <= models.Medicine.threshold,
+        models.Medicine.stock < models.Medicine.threshold,
         models.Medicine.owner_id != None
     ).all()
     return [schemas.MedicineResponse.from_orm(med) for med in results]
@@ -360,6 +369,15 @@ def list_users(db: Session = Depends(get_db), current_user: models.User = Depend
     if current_user.role != models.UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return db.query(models.User).all()
+
+@app.delete("/admin/users/{user_id}")
+def delete_user_route(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    success = crud.delete_user(db, user_id=user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User and all associated data deleted successfully"}
 
 @app.put("/orders/{order_id}/status")
 async def update_status(order_id: int, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

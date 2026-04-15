@@ -7,6 +7,7 @@ class UserBase(BaseModel):
     name: str
     email: EmailStr
     role: UserRole
+    license_number: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, regex=r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$")
@@ -23,6 +24,7 @@ class MedicineBase(BaseModel):
     stock: int
     threshold: int
     is_requested: bool = False
+    requested_quantity: int = 0
 
 class MedicineResponse(MedicineBase):
     id: int
@@ -43,6 +45,7 @@ class OrderCreate(BaseModel):
 class OrderResponse(BaseModel):
     id: int
     order_date: datetime
+    delivery_date: Optional[datetime] = None
     status: OrderStatus
     total_amount: float
     items_summary: str

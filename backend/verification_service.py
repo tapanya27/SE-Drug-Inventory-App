@@ -51,15 +51,17 @@ class LicenseVerifier:
     LICENSE_PATTERNS = [
         r"[A-Z]{2,4}[-/]?\d{4,10}",          # e.g. PH-12345, DL/2024/12345
         r"\d{2,4}[-/][A-Z]{1,4}[-/]\d{3,8}",  # e.g. 21/B/12345
+        r"[A-Z]{2,4}[-/][A-Z]{2,4}[-/]\d{4,10}", # e.g. KA-BNG-123456
         r"[A-Z]\d{5,12}",                      # e.g. P123456789
         r"\d{6,15}",                            # pure numeric
     ]
 
     # --- Date patterns ---
     DATE_PATTERNS = [
-        r"\d{2}[/-]\d{2}[/-]\d{4}",   # DD/MM/YYYY or DD-MM-YYYY
-        r"\d{4}[/-]\d{2}[/-]\d{2}",   # YYYY-MM-DD or YYYY/MM/DD
-        r"\d{2}\s\w+\s\d{4}",         # 12 January 2025
+        r"\d{1,2}[/-]\d{1,2}[/-]\d{4}",   # DD/MM/YYYY or D/M/YYYY
+        r"\d{4}[/-]\d{1,2}[/-]\d{1,2}",   # YYYY-MM-DD or YYYY-M-D
+        r"\d{1,2}[/-]\d{4}",            # MM/YYYY or M/YYYY
+        r"\d{1,2}\s\w+\s\d{4}",         # 12 January 2025
         r"\w+\s\d{1,2},?\s\d{4}",     # January 12, 2025
     ]
 
@@ -362,6 +364,7 @@ class LicenseVerifier:
                     break
             if not valid_format:
                 self.issues.append(f"License number '{data['license_number']}' does not match known formats.")
+                self.extracted_data["license_number"] = ""
 
         # Check dates
         issue_date = self._parse_date(data["issue_date"])
@@ -393,6 +396,7 @@ class LicenseVerifier:
             "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%Y/%m/%d",
             "%d %B %Y", "%B %d, %Y", "%B %d %Y",
             "%d %b %Y", "%b %d, %Y", "%b %d %Y",
+            "%m/%Y", "%m-%Y"
         ]
         for fmt in formats:
             try:
@@ -495,6 +499,7 @@ class LicenseVerifier:
             "Issue date is not before expiry date",
             "not a valid PDF",
             "mostly blank or uniform",
+            "License number not detected",
         ]
         
         # --- Negative Keyword Check (Critical) ---
@@ -546,6 +551,8 @@ class LicenseVerifier:
             "mostly blank or uniform",
             "possible forgery",
             "non-license document detected",
+            "License number not detected",
+            "does not match known formats",
         ]
         
         has_critical = any(

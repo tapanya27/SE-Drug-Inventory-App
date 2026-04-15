@@ -255,15 +255,29 @@ class ApiService {
       throw Exception('Failed to load stats (${response.statusCode})');
     }
   }
-  static Future<void> requestStock(int medicineId) async {
+  static Future<void> requestStock(int medicineId, int quantity) async {
     final response = await _authenticatedRequest(
       () => http.put(
         Uri.parse('$baseUrl/inventory/$medicineId/request'),
         headers: _headers,
+        body: jsonEncode({'quantity': quantity}),
       ),
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to request stock (${response.statusCode})');
+    }
+  }
+
+  static Future<void> consumeStock(int medicineId, int quantity) async {
+    final response = await _authenticatedRequest(
+      () => http.put(
+        Uri.parse('$baseUrl/inventory/$medicineId/consume'),
+        headers: _headers,
+        body: jsonEncode({'quantity': quantity}),
+      ),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to consume stock (${response.statusCode})');
     }
   }
 
@@ -304,6 +318,18 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load users');
+    }
+  }
+
+  static Future<void> deleteUser(int userId) async {
+    final response = await _authenticatedRequest(
+      () => http.delete(
+        Uri.parse('$baseUrl/admin/users/$userId'),
+        headers: _headers,
+      ),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete user (${response.statusCode})');
     }
   }
 

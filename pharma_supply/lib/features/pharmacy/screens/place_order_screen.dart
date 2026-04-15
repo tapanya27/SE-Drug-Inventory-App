@@ -258,6 +258,7 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
         final id = item['id'] as int;
         final qty = _cart[id] ?? 0;
         final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final availableStock = item['stock'] as int? ?? 0;
 
         return Container(
           decoration: BoxDecoration(
@@ -276,6 +277,8 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
                       Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 4),
                       Text('\$${price.toStringAsFixed(2)} per unit', style: const TextStyle(color: AppColors.primaryAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('Available: $availableStock', style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -298,8 +301,18 @@ class _PlaceOrderScreenState extends State<PlaceOrderScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.add_rounded, size: 18),
-                        onPressed: () => setState(() => _cart[id] = qty + 1),
-                        color: AppColors.primaryAccent,
+                        onPressed: qty < availableStock 
+                            ? () => setState(() => _cart[id] = qty + 1)
+                            : () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Order quantity exceeds available stock.', style: TextStyle(color: Colors.white)), 
+                                    backgroundColor: AppColors.error,
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                        color: qty < availableStock ? AppColors.primaryAccent : AppColors.borderLight,
                       ),
                     ],
                   ),

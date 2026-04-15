@@ -131,7 +131,7 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
         final stock = item['stock'] as int;
         final threshold = item['threshold'] as int;
         
-        bool isLow = stock <= threshold;
+        bool isLow = stock < threshold;
         bool isOut = stock == 0;
         
         Color statusColor = isOut ? AppColors.error : (isLow ? AppColors.warning : AppColors.success);
@@ -161,14 +161,28 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Min Threshold: $threshold',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Min Threshold: $threshold',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
+                  ),
+                  if (stock > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: GestureDetector(
+                        onTap: () => _handleConsumeStock(item),
+                        child: const Text('Consume Units', style: TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                ],
               ),
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '$stock',
@@ -189,6 +203,57 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
         );
       },
     );
+  }
+
+  Future<void> _handleConsumeStock(dynamic item) async {
+    final quantityController = TextEditingController(text: '1');
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Consume ${item['name']}'),
+          content: TextField(
+            controller: quantityController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Quantity to consume'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              onPressed: () {
+                final qty = int.tryParse(quantityController.text) ?? 0;
+                Navigator.pop(context, qty);
+              },
+              child: const Text('Consume'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result > 0) {
+      if (result > item['stock']) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot consume more than available stock.'), backgroundColor: AppColors.error));
+        return;
+      }
+      try {
+        await ApiService.consumeStock(item['id'], result);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Consumed $result units of ${item['name']}.')),
+          );
+          _fetchInventory();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
   }
 
   Widget _buildErrorState() {

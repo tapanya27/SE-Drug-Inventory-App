@@ -77,6 +77,16 @@ class _PaymentSimulationScreenState extends State<PaymentSimulationScreen>
       }
       if (!RegExp(r'^\d{2}/\d{2}$').hasMatch(expiry)) {
         throw Exception('Please enter a valid expiry date (MM/YY).');
+      } else {
+        final month = int.tryParse(expiry.substring(0, 2));
+        final year = int.tryParse(expiry.substring(3, 5));
+        
+        if (month == null || month < 1 || month > 12) {
+          throw Exception('Expiry month must be between 01 and 12.');
+        }
+        if (year == null || year < 0 || year > 99) {
+          throw Exception('Expiry year must be >= 00 and <= 99.');
+        }
       }
       if (cvc.length < 3 || cvc.length > 4 || !RegExp(r'^\d+$').hasMatch(cvc)) {
         throw Exception('Please enter a valid CVC (3-4 digits).');

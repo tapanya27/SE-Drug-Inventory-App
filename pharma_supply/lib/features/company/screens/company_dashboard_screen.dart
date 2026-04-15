@@ -263,14 +263,15 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
             separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderLight),
             itemBuilder: (context, index) {
               final item = requestedItems[index];
+              final requestQty = item['requested_quantity'] ?? 500;
               return AppListTile(
                 padding: const EdgeInsets.all(20),
                 title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, inherit: true)),
-                subtitle: Text('WH: ${item['owner_name'] ?? 'Primary'} • Stock: ${item['stock']}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, inherit: true)),
+                subtitle: Text('WH: ${item['owner_name'] ?? 'Primary'} • Stock: ${item['stock']} • Req: $requestQty', style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight, inherit: true)),
                 trailing: AppButton(
                   height: 40,
-                  text: 'Audit & Dispatch',
-                  onPressed: () => _handleReplenish(item),
+                  text: 'Dispatch $requestQty',
+                  onPressed: () => _handleReplenish(item, requestQty as int),
                 ),
               );
             },
@@ -280,12 +281,12 @@ class _CompanyDashboardScreenState extends State<CompanyDashboardScreen> {
     );
   }
 
-  Future<void> _handleReplenish(dynamic item) async {
+  Future<void> _handleReplenish(dynamic item, int qty) async {
     try {
       await ApiService.replenishStock(item['id']);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${item['name']} replenished with 500 units.')),
+          SnackBar(content: Text('${item['name']} replenished with $qty units.')),
         );
         _refreshData();
       }

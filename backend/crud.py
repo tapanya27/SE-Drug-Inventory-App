@@ -12,7 +12,8 @@ def create_user(db: Session, user: schemas.UserCreate):
         name=user.name,
         email=user.email,
         password_hash=hashed_password,
-        role=user.role
+        role=user.role,
+        license_number=user.license_number
     )
     db.add(db_user)
     db.commit()
@@ -90,6 +91,17 @@ def create_order(db: Session, order: schemas.OrderCreate, user_id: int):
     for item in order.items:
         medicine = db.query(models.Medicine).filter(models.Medicine.id == item.medicine_id).first()
         if medicine:
+            # Check availability in Fulfiller's stock
+            fulfiller_med = db.query(models.Medicine).filter(
+                models.Medicine.name == medicine.name,
+                models.Medicine.owner_id == order.warehouse_id
+            ).first()
+            available_stock = fulfiller_med.stock if fulfiller_med else 0
+            if item.quantity > available_stock:
+                db.rollback()
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail=f"Order quantity exceeds available stock for {medicine.name}.")
+
             total += medicine.price * item.quantity
             summary_parts.append(f"{medicine.name} ({item.quantity})")
             
@@ -164,6 +176,7 @@ def update_order_status(db: Session, order_id: int, status: models.OrderStatus, 
 
         # 2. DELIVERY Logic (Add to Pharmacy)
         if old_status != status and status == models.OrderStatus.DELIVERED:
+            db_order.delivery_date = datetime.now()
             print(f"DEBUG: Processing DELIVERY for Order #{order_id}. Adding to Pharmacy {db_order.user_id}...")
             for item in db_order.items:
                 # Find or create this medicine record for the Pharmacy
@@ -199,31 +212,41 @@ def get_warehouse_stats(db: Session, owner_id: int):
         models.Order.fulfiller_id == owner_id
     ).count()
 
-    # Count medicines owned by this warehouse that are at or below threshold
+    # Count medicines owned by this warehouse that are strictly below threshold
     low_stock = db.query(models.Medicine).filter(
         models.Medicine.owner_id == owner_id,
-        models.Medicine.stock <= models.Medicine.threshold
+        models.Medicine.stock < models.Medicine.threshold
     ).count()
     
     # Count delivered orders explicitly assigned to this warehouse
     today_start = datetime.combine(date.today(), datetime.min.time())
-    delivered_today = db.query(models.Order).filter(
+    delivered_orders = db.query(models.Order).filter(
         models.Order.status == models.OrderStatus.DELIVERED,
-        models.Order.order_date >= today_start,
         models.Order.fulfiller_id == owner_id
-    ).count()
+    ).order_by(models.Order.order_date.desc()).all()
+    
+    delivered_today_count = sum(1 for o in delivered_orders if o.order_date >= today_start)
+    
+    items_received_today = 0
+    for o in delivered_orders:
+        if o.order_date >= today_start:
+            for item in o.items:
+                items_received_today += item.quantity
     
     return {
         "pending_dispatch": pending_dispatch,
         "low_stock": low_stock,
-        "delivered_today": delivered_today
+        "delivered_today": delivered_today_count,
+        "items_received_today": items_received_today,
+        "total_delivered": len(delivered_orders)
     }
 
 
-def request_stock(db: Session, medicine_id: int):
+def request_stock(db: Session, medicine_id: int, quantity: int = 500):
     db_medicine = db.query(models.Medicine).filter(models.Medicine.id == medicine_id).first()
     if db_medicine:
         db_medicine.is_requested = True
+        db_medicine.requested_quantity = quantity
         db.commit()
         db.refresh(db_medicine)
     return db_medicine
@@ -232,7 +255,20 @@ def replenish_stock(db: Session, medicine_id: int):
     db_medicine = db.query(models.Medicine).filter(models.Medicine.id == medicine_id).first()
     if db_medicine:
         db_medicine.is_requested = False
-        db_medicine.stock += 500 # Fixed replenishment amount
+        replenish_amt = db_medicine.requested_quantity if db_medicine.requested_quantity and db_medicine.requested_quantity > 0 else 500
+        db_medicine.stock += replenish_amt
+        db_medicine.requested_quantity = 0
+        db.commit()
+        db.refresh(db_medicine)
+    return db_medicine
+
+def consume_stock(db: Session, medicine_id: int, quantity: int):
+    db_medicine = db.query(models.Medicine).filter(models.Medicine.id == medicine_id).first()
+    if db_medicine:
+        if db_medicine.stock < quantity:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Not enough stock")
+        db_medicine.stock -= quantity
         db.commit()
         db.refresh(db_medicine)
     return db_medicine
@@ -240,7 +276,7 @@ def replenish_stock(db: Session, medicine_id: int):
 def get_demand_prediction(db: Session):
     # Heuristic: Ordered more than 3 times in the last 7 days
     from datetime import timedelta
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = datetime.now() - timedelta(days=7)
     
     # Query order items and group by medicine
     results = db.query(
@@ -252,4 +288,30 @@ def get_demand_prediction(db: Session):
     
     high_demand_ids = [r.medicine_id for r in results if r.order_count >= 3]
     
-    return db.query(models.Medicine).filter(models.Medicine.id.in_(high_demand_ids)).all() if high_demand_ids else []
+def delete_user(db: Session, user_id: int):
+    # Cascading delete manually for safety
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        return False
+        
+    # Delete documents
+    db.query(models.Document).filter(models.Document.user_id == user_id).delete()
+    
+    # Delete medicines they own
+    db.query(models.Medicine).filter(models.Medicine.owner_id == user_id).delete()
+    
+    # Delete orders they placed and items within those orders
+    orders_placed = db.query(models.Order).filter(models.Order.user_id == user_id).all()
+    for o in orders_placed:
+        db.query(models.OrderItem).filter(models.OrderItem.order_id == o.id).delete()
+    db.query(models.Order).filter(models.Order.user_id == user_id).delete()
+    
+    # Delete orders they fulfill
+    orders_fulfilled = db.query(models.Order).filter(models.Order.fulfiller_id == user_id).all()
+    for o in orders_fulfilled:
+        db.query(models.OrderItem).filter(models.OrderItem.order_id == o.id).delete()
+    db.query(models.Order).filter(models.Order.fulfiller_id == user_id).delete()
+    
+    db.delete(user)
+    db.commit()
+    return True

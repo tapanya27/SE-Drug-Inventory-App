@@ -76,6 +76,15 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
           const SizedBox(height: 16),
           
           _buildOrdersList(theme),
+          const SizedBox(height: 48),
+          
+          Text(
+            'Delivered Orders',
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
+          ),
+          const SizedBox(height: 16),
+          _buildDeliveredOrdersList(theme),
+          
           const SizedBox(height: 48), // Added extra bottom padding
         ],
       ),
@@ -165,7 +174,9 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
         final stats = snapshot.data ?? {
           'pending_dispatch': 0,
           'low_stock': 0,
-          'delivered_today': 0
+          'delivered_today': 0,
+          'items_received_today': 0,
+          'total_delivered': 0
         };
         
         return LayoutBuilder(
@@ -185,9 +196,15 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
               ),
               _StatCard(
                 title: 'Delivered Today', 
-                value: stats['delivered_today'].toString(), 
+                value: '${stats['delivered_today']} (${stats['items_received_today']} items)', 
                 icon: Icons.task_alt_rounded, 
                 color: AppColors.success
+              ),
+              _StatCard(
+                title: 'Total Delivered', 
+                value: '${stats['total_delivered']}', 
+                icon: Icons.inventory_rounded, 
+                color: AppColors.primaryAccent
               ),
             ];
 
@@ -201,7 +218,9 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
               );
             }
 
-            int count = constraints.maxWidth > 800 ? 3 : 2;
+            int count = constraints.maxWidth > 800 ? 4 : 2;
+            if (constraints.maxWidth > 600 && constraints.maxWidth <= 800) count = 2;
+            
             return GridView.count(
               crossAxisCount: count,
               shrinkWrap: true,
@@ -255,10 +274,68 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
                   'Order #${order['id']}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text('${order['items']?.length ?? 0} items • Finalizing package'),
+                subtitle: Text('${order['items_summary'] ?? 'Unknown items'} • Finalizing package'),
                 trailing: AppTextButton(
                   text: 'Dispatch',
                   onPressed: () => _updateStatus(order['id'], 'Dispatched'),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDeliveredOrdersList(ThemeData theme) {
+    return FutureBuilder<List<dynamic>>(
+      future: _ordersFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(48.0), child: CircularProgressIndicator()));
+        }
+        
+        final orders = (snapshot.data ?? []).where((o) => o['status'] == 'Delivered').toList();
+        if (orders.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(48.0),
+              child: Column(
+                children: [
+                  Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.borderLight),
+                  const SizedBox(height: 16),
+                  const Text('No delivered orders yet', style: TextStyle(color: AppColors.textSecondaryLight)),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return AppCard(
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: orders.length,
+            separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderLight),
+            itemBuilder: (context, index) {
+              final order = orders[index];
+              return AppListTile(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                title: Text(
+                  'Order #${order['id']}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text('${order['items_summary'] ?? 'Unknown items'}\nFinalized on: ${order['order_date']?.toString().split('T')[0] ?? 'Unknown'}'),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Delivered',
+                    style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
               );
             },

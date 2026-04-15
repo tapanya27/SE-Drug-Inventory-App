@@ -16,10 +16,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _selectedRole = 'Pharmacy Store';
-  bool _isLoading = false;
   String? _nameError;
   String? _emailError;
   String? _passwordError;
+  bool _isLoading = false;
 
   void _validateName(String value) {
     setState(() {
