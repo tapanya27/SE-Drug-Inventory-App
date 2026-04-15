@@ -352,11 +352,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isUploading ? null : _uploadDocument,
-                child: _isUploading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)))
-                    : const Text('Analyze & Verify'),
+              child: ElevatedButton.icon(
+                onPressed: _isUploading 
+                    ? null 
+                    : (_selectedFile == null ? _pickFile : _uploadDocument),
+                icon: _isUploading 
+                    ? const SizedBox() 
+                    : Icon(_selectedFile == null ? Icons.folder_open_rounded : Icons.verified_user_rounded),
+                label: _isUploading
+                    ? const SizedBox(
+                        height: 20, 
+                        width: 20, 
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2, 
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : Text(_selectedFile == null ? 'Browse Files App' : 'Analyze & Verify'),
               ),
             ),
           ],

@@ -12,28 +12,25 @@ class WarehouseDashboardScreen extends StatefulWidget {
 }
 
 class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
-  Future<List<dynamic>>? _ordersFuture;
-  Future<Map<String, dynamic>>? _statsFuture;
+  late Future<List<dynamic>> _ordersFuture;
 
   @override
   void initState() {
     super.initState();
-    _refreshOrders();
+    _ordersFuture = ApiService.getOrders();
   }
 
   void _refreshOrders() {
     setState(() {
       _ordersFuture = ApiService.getOrders();
-      _statsFuture = ApiService.getWarehouseStats();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
           'Warehouse Hub',
@@ -59,29 +56,28 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
         ],
       ),
       drawer: _buildDrawer(context),
-      body: SingleChildScrollView(
+      body: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(theme),
-            const SizedBox(height: 32),
-            
-            _buildDemandBanner(theme),
-            const SizedBox(height: 16),
+        children: [
+          _buildHeader(theme),
+          const SizedBox(height: 32),
+          
+          _buildDemandBanner(theme),
+          const SizedBox(height: 16),
 
-            _buildStatsGrid(theme),
-            const SizedBox(height: 48),
+          _buildStatsGrid(theme),
+          const SizedBox(height: 48),
 
-            Text(
-              'Awaiting Dispatch',
-              style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
-            ),
-            const SizedBox(height: 16),
-            
-            _buildOrdersList(theme),
-          ],
-        ),
+          Text(
+            'Awaiting Dispatch',
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
+          ),
+          const SizedBox(height: 16),
+          
+          _buildOrdersList(theme),
+          const SizedBox(height: 48), // Added extra bottom padding
+        ],
       ),
     );
   }
@@ -160,44 +156,60 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
 
   Widget _buildStatsGrid(ThemeData theme) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _statsFuture,
+      future: ApiService.getWarehouseStats(),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(48.0), child: CircularProgressIndicator()));
+        }
+        
         final stats = snapshot.data ?? {
           'pending_dispatch': 0,
           'low_stock': 0,
-          'delivered_today': 0,
+          'delivered_today': 0
         };
         
         return LayoutBuilder(
           builder: (context, constraints) {
-            int count = constraints.maxWidth > 800 ? 3 : (constraints.maxWidth > 500 ? 2 : 1);
+            final statsCards = [
+              _StatCard(
+                title: 'Pending Dispatch', 
+                value: stats['pending_dispatch'].toString(), 
+                icon: Icons.hourglass_top_rounded, 
+                color: AppColors.warning
+              ),
+              _StatCard(
+                title: 'Low Stock Alerts', 
+                value: stats['low_stock'].toString(), 
+                icon: Icons.warning_amber_rounded, 
+                color: AppColors.error
+              ),
+              _StatCard(
+                title: 'Delivered Today', 
+                value: stats['delivered_today'].toString(), 
+                icon: Icons.task_alt_rounded, 
+                color: AppColors.success
+              ),
+            ];
+
+            if (constraints.maxWidth < 600) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: statsCards.map((card) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: card,
+                )).toList(),
+              );
+            }
+
+            int count = constraints.maxWidth > 800 ? 3 : 2;
             return GridView.count(
               crossAxisCount: count,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: count == 1 ? 4 : 2.8,
-              children: [
-                _StatCard(
-                  title: 'Pending Dispatch', 
-                  value: stats['pending_dispatch'].toString(), 
-                  icon: Icons.hourglass_top_rounded, 
-                  color: AppColors.warning
-                ),
-                _StatCard(
-                  title: 'Low Stock Alerts', 
-                  value: stats['low_stock'].toString(), 
-                  icon: Icons.warning_amber_rounded, 
-                  color: AppColors.error
-                ),
-                _StatCard(
-                  title: 'Delivered Today', 
-                  value: stats['delivered_today'].toString(), 
-                  icon: Icons.task_alt_rounded, 
-                  color: AppColors.success
-                ),
-              ],
+              childAspectRatio: 2.8,
+              children: statsCards,
             );
           },
         );
@@ -237,7 +249,18 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
             separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.borderLight),
             itemBuilder: (context, index) {
               final order = orders[index];
-              return _buildOrderRow(context, order);
+              return AppListTile(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                title: Text(
+                  'Order #${order['id']}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text('${order['items']?.length ?? 0} items • Finalizing package'),
+                trailing: AppTextButton(
+                  text: 'Dispatch',
+                  onPressed: () => _updateStatus(order['id'], 'Dispatched'),
+                ),
+              );
             },
           ),
         );
@@ -245,67 +268,17 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
     );
   }
 
-  Widget _buildOrderRow(BuildContext context, dynamic order) {
-    return AppListTile(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      leading: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.inventory_2_outlined, color: AppColors.primaryAccent),
-      ),
-      title: Text('Order #${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, inherit: true)),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text(order['items_summary'] ?? 'N/A', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(inherit: true)),
-      ),
-      trailing: AppButton(
-        height: 40,
-        text: 'Dispatch',
-        onPressed: () async {
-          try {
-            final warnings = await ApiService.updateOrderStatus(order['id'], 'Dispatched');
-            if (context.mounted) {
-              if (warnings.isNotEmpty) _showLowStockWarning(context, warnings);
-              _refreshOrders();
-            }
-          } catch (e) {
-            if (context.mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-            }
-          }
-        },
-      ),
-    );
-  }
-
-  void _showLowStockWarning(BuildContext context, List<dynamic> warnings) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-            SizedBox(width: 12),
-            Text('Stock Depletion'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: warnings.map((w) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text('• $w', style: const TextStyle(fontSize: 14)),
-          )).toList(),
-        ),
-        actions: [
-          AppTextButton(
-            onPressed: () => Navigator.pop(context),
-            text: 'Acknowledged',
-          ),
-        ],
-      ),
-    );
+  Future<void> _updateStatus(int orderId, String status) async {
+    try {
+      await ApiService.updateOrderStatus(orderId, status);
+      _refreshOrders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   Widget _buildDrawer(BuildContext context) {
@@ -315,48 +288,53 @@ class _WarehouseDashboardScreenState extends State<WarehouseDashboardScreen> {
       child: Column(
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: AppColors.backgroundLight,
-              border: Border(bottom: BorderSide(color: AppColors.borderLight)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppColors.primaryAccent, borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.warehouse_rounded, color: Colors.white, size: 28),
-                ),
-                const SizedBox(width: 16),
-                const Text('Logistics Hub', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-              ],
+            decoration: const BoxDecoration(color: AppColors.primaryLight),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.warehouse_rounded, size: 48, color: AppColors.primaryAccent),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Pharma Supply',
+                    style: TextStyle(
+                      color: AppColors.primaryDark,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          _buildDrawerItem(Icons.dashboard_outlined, 'Dashboard', true, () => Navigator.pop(context)),
-          _buildDrawerItem(Icons.inventory_2_outlined, 'Manage Inventory', false, () {
-             Navigator.pop(context);
-             context.go('/warehouse_inventory');
-          }),
+          ListTile(
+            leading: const Icon(Icons.dashboard_rounded, color: AppColors.primaryAccent),
+            title: const Text('Dashboard'),
+            onTap: () => Navigator.pop(context),
+            selected: true,
+            selectedTileColor: AppColors.primaryLight.withOpacity(0.5),
+          ),
+          ListTile(
+            leading: const Icon(Icons.inventory_2_rounded),
+            title: const Text('Inventory'),
+            onTap: () {
+              Navigator.pop(context);
+              context.go('/warehouse_inventory');
+            },
+          ),
           const Spacer(),
-          _buildDrawerItem(Icons.logout_rounded, 'Sign Out', false, () async {
-            await ApiService.logout();
-            context.go('/login');
-          }),
-          const SizedBox(height: 20),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: AppColors.error),
+            title: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
+            onTap: () async {
+              await ApiService.logout();
+              if (context.mounted) context.go('/login');
+            },
+          ),
+          const SizedBox(height: 16),
         ],
       ),
-    );
-  }
-
-  Widget _buildDrawerItem(IconData icon, String title, bool selected, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: selected ? AppColors.primaryAccent : AppColors.textSecondaryLight, size: 22),
-      title: Text(title, style: TextStyle(color: selected ? AppColors.primaryAccent : AppColors.textPrimaryLight, fontWeight: selected ? FontWeight.w600 : FontWeight.w500)),
-      onTap: onTap,
-      dense: true,
-      selected: selected,
-      selectedTileColor: AppColors.primaryLight,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }
 }
