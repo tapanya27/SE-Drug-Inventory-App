@@ -253,3 +253,65 @@
 2026-04-13 14:34:46,545 - DEBUG - body='{\n  "id": "pi_3TLgQD5MJAfJunXF10cx4UHJ",\n  "object": "payment_intent",\n  "amount": 6125,\n  "amount_capturable": 0,\n  "amount_details": {\n    "tip": {}\n  },\n  "amount_received": 0,\n  "application": null,\n  "application_fee_amount": null,\n  "automatic_payment_methods": {\n    "allow_redirects": "always",\n    "enabled": true\n  },\n  "canceled_at": null,\n  "cancellation_reason": null,\n  "capture_method": "automatic",\n  "client_secret": "pi_3TLgQD5MJAfJunXF10cx4UHJ_secret_EmW5s1K56yFMcMljL4tmrPlBk",\n  "confirmation_method": "automatic",\n  "created": 1776071085,\n  "currency": "usd",\n  "customer": null,\n  "customer_account": null,\n  "description": null,\n  "excluded_payment_method_types": null,\n  "invoice": null,\n  "last_payment_error": null,\n  "latest_charge": null,\n  "livemode": false,\n  "managed_payments": {\n    "enabled": false\n  },\n  "metadata": {\n    "user_id": "42"\n  },\n  "next_action": null,\n  "on_behalf_of": null,\n  "payment_method": null,\n  "payment_method_configuration_details": {\n    "id": "pmc_1RvbgA5MJAfJunXFNzjZjH5p",\n    "parent": null\n  },\n  "payment_method_options": {\n    "affirm": {},\n    "amazon_pay": {\n      "express_checkout_element_session_id": null\n    },\n    "card": {\n      "installments": null,\n      "mandate_options": null,\n      "network": null,\n      "request_three_d_secure": "automatic"\n    },\n    "cashapp": {},\n    "klarna": {\n      "preferred_locale": null\n    },\n    "link": {\n      "persistent_token": null\n    }\n  },\n  "payment_method_types": [\n    "card",\n    "klarna",\n    "link",\n    "affirm",\n    "cashapp",\n    "amazon_pay"\n  ],\n  "processing": null,\n  "receipt_email": null,\n  "review": null,\n  "setup_future_usage": null,\n  "shipping": null,\n  "source": null,\n  "statement_descriptor": null,\n  "statement_descriptor_suffix": null,\n  "status": "requires_payment_method",\n  "transfer_data": null,\n  "transfer_group": null\n}' message='API response body'
 2026-04-13 14:34:46,545 - DEBUG - link=https://dashboard.stripe.com/test/logs/req_t0qxV5UIBUcsX2 message='Dashboard link for request'
 2026-04-13 14:34:46,558 - INFO - PaymentIntent created successfully: pi_3TLgQD5MJAfJunXF10cx4UHJ for user 42
+2026-04-15 14:07:15,794 - DEBUG - Calling on_part_begin with no data
+2026-04-15 14:07:15,799 - DEBUG - Calling on_header_field with data[74:93]
+2026-04-15 14:07:15,800 - DEBUG - Calling on_header_value with data[95:121]
+2026-04-15 14:07:15,800 - DEBUG - Calling on_header_end with no data
+2026-04-15 14:07:15,800 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 14:07:15,801 - DEBUG - Calling on_part_data with data[125:141]
+2026-04-15 14:07:15,802 - DEBUG - Calling on_part_end with no data
+2026-04-15 14:07:15,802 - DEBUG - Calling on_part_begin with no data
+2026-04-15 14:07:15,802 - DEBUG - Calling on_header_field with data[217:229]
+2026-04-15 14:07:15,803 - DEBUG - Calling on_header_value with data[231:240]
+2026-04-15 14:07:15,803 - DEBUG - Calling on_header_end with no data
+2026-04-15 14:07:15,803 - DEBUG - Calling on_header_field with data[242:261]
+2026-04-15 14:07:15,805 - DEBUG - Calling on_header_value with data[263:330]
+2026-04-15 14:07:15,805 - DEBUG - Calling on_header_end with no data
+2026-04-15 14:07:15,805 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 14:07:15,806 - DEBUG - Calling on_part_data with data[334:40617]
+2026-04-15 14:07:15,813 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,814 - DEBUG - Calling on_part_data with data[40618:222314]
+2026-04-15 14:07:15,820 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,821 - DEBUG - Calling on_part_data with data[222315:253421]
+2026-04-15 14:07:15,821 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,824 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,826 - DEBUG - Calling on_part_data with data[253423:261129]
+2026-04-15 14:07:15,831 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,832 - DEBUG - Calling on_part_data with data[261130:261190]
+2026-04-15 14:07:15,838 - DEBUG - Calling on_part_data with data[0:71209]
+2026-04-15 14:07:15,839 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,840 - DEBUG - Calling on_part_data with data[71210:108928]
+2026-04-15 14:07:15,846 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,847 - DEBUG - Calling on_part_data with data[108929:123188]
+2026-04-15 14:07:15,848 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,849 - DEBUG - Calling on_part_data with data[123189:141286]
+2026-04-15 14:07:15,852 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,854 - DEBUG - Calling on_part_data with data[141287:197640]
+2026-04-15 14:07:15,855 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,860 - DEBUG - Calling on_part_data with data[197641:248927]
+2026-04-15 14:07:15,860 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 14:07:15,860 - DEBUG - Calling on_part_data with data[248928:262144]
+2026-04-15 14:07:15,869 - DEBUG - Calling on_part_data with data[0:91263]
+2026-04-15 14:07:15,869 - DEBUG - Calling on_part_end with no data
+2026-04-15 14:07:15,870 - DEBUG - Calling on_end with no data
+2026-04-15 14:07:15,920 - DEBUG - Importing PngImagePlugin
+2026-04-15 14:07:16,154 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 14:07:16,156 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 14:07:16,156 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 14:07:16,156 - DEBUG - STREAM b'pHYs' 70 9
+2026-04-15 14:07:16,156 - DEBUG - STREAM b'IDAT' 91 65445
+2026-04-15 14:07:16,593 - DEBUG - ['C:\\Program Files\\Tesseract-OCR\\tesseract.exe', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_5f8ga5tz_input.PNG', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_5f8ga5tz', 'txt']
+2026-04-15 14:07:19,220 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 14:07:19,220 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 14:07:19,221 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 14:07:19,221 - DEBUG - STREAM b'pHYs' 70 9
+2026-04-15 14:07:19,221 - DEBUG - STREAM b'IDAT' 91 65445
+2026-04-15 14:09:11,306 - DEBUG - PaymentIntent Request Data: {'amount': 27.5}
+2026-04-15 14:09:11,524 - INFO - message='Request to Stripe api' method=post path=https://api.stripe.com/v1/payment_intents
+2026-04-15 14:09:11,524 - DEBUG - api_version=2023-10-16 message='Post details' post_data=amount=2750&currency=usd&automatic_payment_methods[enabled]=True&metadata[user_id]=43
+2026-04-15 14:09:11,532 - DEBUG - Starting new HTTPS connection (1): api.stripe.com:443
+2026-04-15 14:09:16,918 - DEBUG - https://api.stripe.com:443 "POST /v1/payment_intents HTTP/1.1" 200 1843
+2026-04-15 14:09:16,919 - INFO - message='Stripe API response' path=https://api.stripe.com/v1/payment_intents response_code=200
+2026-04-15 14:09:16,920 - DEBUG - body='{\n  "id": "pi_3TMOyc5MJAfJunXF1592IOHW",\n  "object": "payment_intent",\n  "amount": 2750,\n  "amount_capturable": 0,\n  "amount_details": {\n    "tip": {}\n  },\n  "amount_received": 0,\n  "application": null,\n  "application_fee_amount": null,\n  "automatic_payment_methods": {\n    "allow_redirects": "always",\n    "enabled": true\n  },\n  "canceled_at": null,\n  "cancellation_reason": null,\n  "capture_method": "automatic",\n  "client_secret": "pi_3TMOyc5MJAfJunXF1592IOHW_secret_GO5bNgs3XlIhK8THlazhAhnWZ",\n  "confirmation_method": "automatic",\n  "created": 1776242354,\n  "currency": "usd",\n  "customer": null,\n  "customer_account": null,\n  "description": null,\n  "excluded_payment_method_types": null,\n  "invoice": null,\n  "last_payment_error": null,\n  "latest_charge": null,\n  "livemode": false,\n  "managed_payments": {\n    "enabled": false\n  },\n  "metadata": {\n    "user_id": "43"\n  },\n  "next_action": null,\n  "on_behalf_of": null,\n  "payment_method": null,\n  "payment_method_configuration_details": {\n    "id": "pmc_1RvbgA5MJAfJunXFNzjZjH5p",\n    "parent": null\n  },\n  "payment_method_options": {\n    "amazon_pay": {\n      "express_checkout_element_session_id": null\n    },\n    "card": {\n      "installments": null,\n      "mandate_options": null,\n      "network": null,\n      "request_three_d_secure": "automatic"\n    },\n    "cashapp": {},\n    "klarna": {\n      "preferred_locale": null\n    },\n    "link": {\n      "persistent_token": null\n    }\n  },\n  "payment_method_types": [\n    "card",\n    "klarna",\n    "link",\n    "cashapp",\n    "amazon_pay"\n  ],\n  "processing": null,\n  "receipt_email": null,\n  "review": null,\n  "setup_future_usage": null,\n  "shipping": null,\n  "source": null,\n  "statement_descriptor": null,\n  "statement_descriptor_suffix": null,\n  "status": "requires_payment_method",\n  "transfer_data": null,\n  "transfer_group": null\n}' message='API response body'
+2026-04-15 14:09:16,920 - DEBUG - link=https://dashboard.stripe.com/test/logs/req_3cCKiAkNC2IMgY message='Dashboard link for request'
+2026-04-15 14:09:16,977 - INFO - PaymentIntent created successfully: pi_3TMOyc5MJAfJunXF1592IOHW for user 43

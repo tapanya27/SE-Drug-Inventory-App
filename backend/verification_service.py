@@ -11,7 +11,7 @@ import os
 from datetime import datetime, date
 from typing import Dict, List, Optional, Tuple
 
-# Try to import OCR libraries; gracefully fall back if unavailable
+# Try to import OCR and PDF libraries; gracefully fall back if unavailable
 try:
     from PIL import Image
     PIL_AVAILABLE = True
@@ -36,6 +36,12 @@ try:
             TESSERACT_AVAILABLE = False
 except ImportError:
     TESSERACT_AVAILABLE = False
+
+try:
+    import fitz  # PyMuPDF
+    FITZ_AVAILABLE = True
+except ImportError:
+    FITZ_AVAILABLE = False
 
 
 class LicenseVerifier:
@@ -160,12 +166,21 @@ class LicenseVerifier:
             except Exception as e:
                 print(f"[AI] OCR failed: {e}. Falling back to simulation.")
 
-        # For PDFs usage simulation is fine
-        # For images, if OCR is unavailable, simulation is useless/dangerous
-        if ext in [".jpg", ".jpeg", ".png"] and not (PIL_AVAILABLE and TESSERACT_AVAILABLE):
-            print(f"[AI] Error: OCR engine not found. Cannot process image {filename}.")
-            self.issues.append("OCR engine unavailable for image verification. Please contact support.")
-            return ""
+        # Use PyMuPDF for PDFs if available
+        if ext == ".pdf" and FITZ_AVAILABLE:
+            try:
+                doc = fitz.open(file_path)
+                text = ""
+                for page in doc:
+                    text += page.get_text()
+                doc.close()
+                if text.strip():
+                    print(f"[AI] PyMuPDF extracted {len(text)} characters from PDF.")
+                    return text
+                else:
+                    print("[AI] PyMuPDF found no text in PDF (possible scan).")
+            except Exception as e:
+                print(f"[AI] PyMuPDF failed: {e}")
 
         return self._simulate_ocr(file_path, filename)
 
@@ -506,6 +521,10 @@ class LicenseVerifier:
         # --- Final Zero-Trust Guard ---
         if not raw_text.strip() or len(raw_text.strip()) < 10:
             print("[AI] Zero-Trust Guard: No text found. Forcing score to 0.")
+            if not PIL_AVAILABLE or not TESSERACT_AVAILABLE:
+                self.issues.append("AI Engine Offline: OCR dependencies not installed on server.")
+            else:
+                self.issues.append("Document Unreadable: AI could not extract enough text. Please ensure the scan is clear and high resolution.")
             return 0
 
         score += max(0, validity_score)

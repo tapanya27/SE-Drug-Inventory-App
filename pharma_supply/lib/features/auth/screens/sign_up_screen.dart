@@ -40,7 +40,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
         _emailError = 'Enter a valid email address';
       } else {
-        _emailError = null;
+        final emailLower = value.toLowerCase();
+        if (_selectedRole == 'Pharmacy Store' && !emailLower.endsWith('@pharmacysupply.com')) {
+          _emailError = 'Pharmacy users must use @pharmacysupply.com';
+        } else if (_selectedRole == 'Warehouse' && !emailLower.endsWith('@warehousesupply.com')) {
+          _emailError = 'Warehouse users must use @warehousesupply.com';
+        } else {
+          _emailError = null;
+        }
       }
     });
   }
@@ -49,8 +56,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() {
       if (value.isEmpty) {
         _passwordError = 'Password is required';
-      } else if (value.length < 6) {
-        _passwordError = 'Password must be at least 6 characters';
+      } else if (value.length < 8) {
+        _passwordError = 'Password must be at least 8 characters';
+      } else if (!RegExp(r'[A-Z]').hasMatch(value)) {
+        _passwordError = 'Add at least one uppercase letter (A-Z)';
+      } else if (!RegExp(r'[a-z]').hasMatch(value)) {
+        _passwordError = 'Add at least one lowercase letter (a-z)';
+      } else if (!RegExp(r'[0-9]').hasMatch(value)) {
+        _passwordError = 'Add at least one numeric digit (0-9)';
       } else {
         _passwordError = null;
       }

@@ -9,7 +9,7 @@ class UserBase(BaseModel):
     role: UserRole
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, regex=r"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+    password: str = Field(..., min_length=8, regex=r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$")
 
 class UserResponse(UserBase):
     id: int

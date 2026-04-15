@@ -163,9 +163,9 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     user_role_str = str(user.role).lower()
     
     if "pharmacy" in user_role_str and not email_lower.endswith("@pharmacysupply.com"):
-        raise HTTPException(status_code=400, detail="Pharmacy users must use @pharmacysupply.com")
+        raise HTTPException(status_code=400, detail="Pharmacy users must use a strictly enforced domain: @pharmacysupply.com")
     if "warehouse" in user_role_str and not email_lower.endswith("@warehousesupply.com"):
-        raise HTTPException(status_code=400, detail="Warehouse users must use @warehousesupply.com")
+        raise HTTPException(status_code=400, detail="Warehouse users must use a strictly enforced domain: @warehousesupply.com")
 
     new_user = crud.create_user(db=db, user=user)
     

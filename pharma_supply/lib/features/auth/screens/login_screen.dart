@@ -34,8 +34,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       if (value.isEmpty) {
         _passwordError = 'Password is required';
-      } else if (value.length < 6) {
-        _passwordError = 'Password must be at least 6 characters';
+      } else if (value.length < 8) {
+        _passwordError = 'Password must be at least 8 characters';
       } else {
         _passwordError = null;
       }

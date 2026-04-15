@@ -484,7 +484,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
           Expanded(
             child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight)),
           ),
-          const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16),
+          if (value.isNotEmpty && value != 'null')
+            const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16)
+          else
+            const Icon(Icons.help_outline_rounded, color: AppColors.warning, size: 16),
         ],
       ),
     );
