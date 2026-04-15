@@ -315,3 +315,134 @@
 2026-04-15 14:09:16,920 - DEBUG - body='{\n  "id": "pi_3TMOyc5MJAfJunXF1592IOHW",\n  "object": "payment_intent",\n  "amount": 2750,\n  "amount_capturable": 0,\n  "amount_details": {\n    "tip": {}\n  },\n  "amount_received": 0,\n  "application": null,\n  "application_fee_amount": null,\n  "automatic_payment_methods": {\n    "allow_redirects": "always",\n    "enabled": true\n  },\n  "canceled_at": null,\n  "cancellation_reason": null,\n  "capture_method": "automatic",\n  "client_secret": "pi_3TMOyc5MJAfJunXF1592IOHW_secret_GO5bNgs3XlIhK8THlazhAhnWZ",\n  "confirmation_method": "automatic",\n  "created": 1776242354,\n  "currency": "usd",\n  "customer": null,\n  "customer_account": null,\n  "description": null,\n  "excluded_payment_method_types": null,\n  "invoice": null,\n  "last_payment_error": null,\n  "latest_charge": null,\n  "livemode": false,\n  "managed_payments": {\n    "enabled": false\n  },\n  "metadata": {\n    "user_id": "43"\n  },\n  "next_action": null,\n  "on_behalf_of": null,\n  "payment_method": null,\n  "payment_method_configuration_details": {\n    "id": "pmc_1RvbgA5MJAfJunXFNzjZjH5p",\n    "parent": null\n  },\n  "payment_method_options": {\n    "amazon_pay": {\n      "express_checkout_element_session_id": null\n    },\n    "card": {\n      "installments": null,\n      "mandate_options": null,\n      "network": null,\n      "request_three_d_secure": "automatic"\n    },\n    "cashapp": {},\n    "klarna": {\n      "preferred_locale": null\n    },\n    "link": {\n      "persistent_token": null\n    }\n  },\n  "payment_method_types": [\n    "card",\n    "klarna",\n    "link",\n    "cashapp",\n    "amazon_pay"\n  ],\n  "processing": null,\n  "receipt_email": null,\n  "review": null,\n  "setup_future_usage": null,\n  "shipping": null,\n  "source": null,\n  "statement_descriptor": null,\n  "statement_descriptor_suffix": null,\n  "status": "requires_payment_method",\n  "transfer_data": null,\n  "transfer_group": null\n}' message='API response body'
 2026-04-15 14:09:16,920 - DEBUG - link=https://dashboard.stripe.com/test/logs/req_3cCKiAkNC2IMgY message='Dashboard link for request'
 2026-04-15 14:09:16,977 - INFO - PaymentIntent created successfully: pi_3TMOyc5MJAfJunXF1592IOHW for user 43
+2026-04-15 15:18:03,835 - DEBUG - Calling on_part_begin with no data
+2026-04-15 15:18:03,837 - DEBUG - Calling on_header_field with data[74:93]
+2026-04-15 15:18:03,837 - DEBUG - Calling on_header_value with data[95:121]
+2026-04-15 15:18:03,837 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:18:03,838 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 15:18:03,838 - DEBUG - Calling on_part_data with data[125:141]
+2026-04-15 15:18:03,838 - DEBUG - Calling on_part_end with no data
+2026-04-15 15:18:03,839 - DEBUG - Calling on_part_begin with no data
+2026-04-15 15:18:03,839 - DEBUG - Calling on_header_field with data[217:229]
+2026-04-15 15:18:03,839 - DEBUG - Calling on_header_value with data[231:240]
+2026-04-15 15:18:03,839 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:18:03,839 - DEBUG - Calling on_header_field with data[242:261]
+2026-04-15 15:18:03,839 - DEBUG - Calling on_header_value with data[263:323]
+2026-04-15 15:18:03,840 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:18:03,840 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 15:18:03,840 - DEBUG - Calling on_part_data with data[327:8860]
+2026-04-15 15:18:03,840 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:18:03,841 - DEBUG - Calling on_part_data with data[8861:111127]
+2026-04-15 15:18:03,841 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:18:03,842 - DEBUG - Calling on_part_data with data[111128:163570]
+2026-04-15 15:18:03,842 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:18:03,844 - DEBUG - Calling on_part_data with data[163571:261190]
+2026-04-15 15:18:03,849 - DEBUG - Calling on_part_data with data[0:2159]
+2026-04-15 15:18:03,849 - DEBUG - Calling on_part_end with no data
+2026-04-15 15:18:03,849 - DEBUG - Calling on_end with no data
+2026-04-15 15:18:03,941 - DEBUG - Importing PngImagePlugin
+2026-04-15 15:18:04,298 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 15:18:04,298 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 15:18:04,298 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 15:18:04,298 - DEBUG - STREAM b'IDAT' 70 65466
+2026-04-15 15:18:04,956 - DEBUG - ['C:\\Program Files\\Tesseract-OCR\\tesseract.exe', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_iwz71q75_input.PNG', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_iwz71q75', 'txt']
+2026-04-15 15:18:06,177 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 15:18:06,178 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 15:18:06,178 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 15:18:06,178 - DEBUG - STREAM b'IDAT' 70 65466
+2026-04-15 15:19:47,094 - DEBUG - Calling on_part_begin with no data
+2026-04-15 15:19:47,095 - DEBUG - Calling on_header_field with data[74:93]
+2026-04-15 15:19:47,095 - DEBUG - Calling on_header_value with data[95:121]
+2026-04-15 15:19:47,095 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:19:47,095 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 15:19:47,095 - DEBUG - Calling on_part_data with data[125:141]
+2026-04-15 15:19:47,096 - DEBUG - Calling on_part_end with no data
+2026-04-15 15:19:47,096 - DEBUG - Calling on_part_begin with no data
+2026-04-15 15:19:47,096 - DEBUG - Calling on_header_field with data[217:229]
+2026-04-15 15:19:47,096 - DEBUG - Calling on_header_value with data[231:240]
+2026-04-15 15:19:47,096 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:19:47,096 - DEBUG - Calling on_header_field with data[242:261]
+2026-04-15 15:19:47,096 - DEBUG - Calling on_header_value with data[263:316]
+2026-04-15 15:19:47,097 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:19:47,097 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 15:19:47,097 - DEBUG - Calling on_part_data with data[320:40570]
+2026-04-15 15:19:47,097 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:19:47,099 - DEBUG - Calling on_part_data with data[40571:168243]
+2026-04-15 15:19:47,100 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:19:47,101 - DEBUG - Calling on_part_data with data[168244:261190]
+2026-04-15 15:19:47,102 - DEBUG - Calling on_part_data with data[0:2152]
+2026-04-15 15:19:47,102 - DEBUG - Calling on_part_end with no data
+2026-04-15 15:19:47,102 - DEBUG - Calling on_end with no data
+2026-04-15 15:19:47,157 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 15:19:47,157 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 15:19:47,157 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 15:19:47,158 - DEBUG - STREAM b'IDAT' 70 65466
+2026-04-15 15:19:47,337 - DEBUG - ['C:\\Program Files\\Tesseract-OCR\\tesseract.exe', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_6_4nnps5_input.PNG', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_6_4nnps5', 'txt']
+2026-04-15 15:19:48,256 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 15:19:48,257 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 15:19:48,257 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 15:19:48,257 - DEBUG - STREAM b'IDAT' 70 65466
+2026-04-15 15:20:12,620 - DEBUG - Calling on_part_begin with no data
+2026-04-15 15:20:12,620 - DEBUG - Calling on_header_field with data[74:93]
+2026-04-15 15:20:12,620 - DEBUG - Calling on_header_value with data[95:121]
+2026-04-15 15:20:12,621 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:20:12,621 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 15:20:12,621 - DEBUG - Calling on_part_data with data[125:141]
+2026-04-15 15:20:12,621 - DEBUG - Calling on_part_end with no data
+2026-04-15 15:20:12,621 - DEBUG - Calling on_part_begin with no data
+2026-04-15 15:20:12,621 - DEBUG - Calling on_header_field with data[217:229]
+2026-04-15 15:20:12,622 - DEBUG - Calling on_header_value with data[231:240]
+2026-04-15 15:20:12,622 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:20:12,622 - DEBUG - Calling on_header_field with data[242:261]
+2026-04-15 15:20:12,622 - DEBUG - Calling on_header_value with data[263:330]
+2026-04-15 15:20:12,622 - DEBUG - Calling on_header_end with no data
+2026-04-15 15:20:12,622 - DEBUG - Calling on_headers_finished with no data
+2026-04-15 15:20:12,624 - DEBUG - Calling on_part_data with data[334:154113]
+2026-04-15 15:20:12,624 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,624 - DEBUG - Calling on_part_data with data[154114:172362]
+2026-04-15 15:20:12,624 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,625 - DEBUG - Calling on_part_data with data[172363:222513]
+2026-04-15 15:20:12,626 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,626 - DEBUG - Calling on_part_data with data[222514:234095]
+2026-04-15 15:20:12,627 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,627 - DEBUG - Calling on_part_data with data[234096:236697]
+2026-04-15 15:20:12,627 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,627 - DEBUG - Calling on_part_data with data[236698:238699]
+2026-04-15 15:20:12,627 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,628 - DEBUG - Calling on_part_data with data[238700:261129]
+2026-04-15 15:20:12,628 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,628 - DEBUG - Calling on_part_data with data[261130:261190]
+2026-04-15 15:20:12,630 - DEBUG - Calling on_part_data with data[0:71209]
+2026-04-15 15:20:12,635 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,635 - DEBUG - Calling on_part_data with data[71210:97782]
+2026-04-15 15:20:12,636 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,636 - DEBUG - Calling on_part_data with data[97783:145547]
+2026-04-15 15:20:12,636 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,637 - DEBUG - Calling on_part_data with data[145548:262144]
+2026-04-15 15:20:12,639 - DEBUG - Calling on_part_data with data[0:68461]
+2026-04-15 15:20:12,640 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,640 - DEBUG - Calling on_part_data with data[68462:69874]
+2026-04-15 15:20:12,640 - DEBUG - Calling on_part_data with data[0:1]
+2026-04-15 15:20:12,640 - DEBUG - Calling on_part_data with data[69875:91263]
+2026-04-15 15:20:12,640 - DEBUG - Calling on_part_end with no data
+2026-04-15 15:20:12,640 - DEBUG - Calling on_end with no data
+2026-04-15 15:20:12,680 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 15:20:12,680 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 15:20:12,681 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 15:20:12,682 - DEBUG - STREAM b'pHYs' 70 9
+2026-04-15 15:20:12,683 - DEBUG - STREAM b'IDAT' 91 65445
+2026-04-15 15:20:12,856 - DEBUG - ['C:\\Program Files\\Tesseract-OCR\\tesseract.exe', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_jg0w3qep_input.PNG', 'C:\\Users\\tanay\\AppData\\Local\\Temp\\tess_jg0w3qep', 'txt']
+2026-04-15 15:20:13,421 - DEBUG - STREAM b'IHDR' 16 13
+2026-04-15 15:20:13,422 - DEBUG - STREAM b'sRGB' 41 1
+2026-04-15 15:20:13,422 - DEBUG - STREAM b'gAMA' 54 4
+2026-04-15 15:20:13,422 - DEBUG - STREAM b'pHYs' 70 9
+2026-04-15 15:20:13,422 - DEBUG - STREAM b'IDAT' 91 65445
+2026-04-15 15:24:52,014 - DEBUG - PaymentIntent Request Data: {'amount': 60}
+2026-04-15 15:24:52,214 - INFO - message='Request to Stripe api' method=post path=https://api.stripe.com/v1/payment_intents
+2026-04-15 15:24:52,214 - DEBUG - api_version=2023-10-16 message='Post details' post_data=amount=6000&currency=usd&automatic_payment_methods[enabled]=True&metadata[user_id]=45
+2026-04-15 15:24:52,223 - DEBUG - Starting new HTTPS connection (1): api.stripe.com:443
+2026-04-15 15:24:54,998 - DEBUG - https://api.stripe.com:443 "POST /v1/payment_intents HTTP/1.1" 200 1875
+2026-04-15 15:24:55,000 - INFO - message='Stripe API response' path=https://api.stripe.com/v1/payment_intents response_code=200
+2026-04-15 15:24:55,000 - DEBUG - body='{\n  "id": "pi_3TMQ9q5MJAfJunXF0aOJ2apx",\n  "object": "payment_intent",\n  "amount": 6000,\n  "amount_capturable": 0,\n  "amount_details": {\n    "tip": {}\n  },\n  "amount_received": 0,\n  "application": null,\n  "application_fee_amount": null,\n  "automatic_payment_methods": {\n    "allow_redirects": "always",\n    "enabled": true\n  },\n  "canceled_at": null,\n  "cancellation_reason": null,\n  "capture_method": "automatic",\n  "client_secret": "pi_3TMQ9q5MJAfJunXF0aOJ2apx_secret_c7qCVz9s1w3luKYB6klPkOs1V",\n  "confirmation_method": "automatic",\n  "created": 1776246894,\n  "currency": "usd",\n  "customer": null,\n  "customer_account": null,\n  "description": null,\n  "excluded_payment_method_types": null,\n  "invoice": null,\n  "last_payment_error": null,\n  "latest_charge": null,\n  "livemode": false,\n  "managed_payments": {\n    "enabled": false\n  },\n  "metadata": {\n    "user_id": "45"\n  },\n  "next_action": null,\n  "on_behalf_of": null,\n  "payment_method": null,\n  "payment_method_configuration_details": {\n    "id": "pmc_1RvbgA5MJAfJunXFNzjZjH5p",\n    "parent": null\n  },\n  "payment_method_options": {\n    "affirm": {},\n    "amazon_pay": {\n      "express_checkout_element_session_id": null\n    },\n    "card": {\n      "installments": null,\n      "mandate_options": null,\n      "network": null,\n      "request_three_d_secure": "automatic"\n    },\n    "cashapp": {},\n    "klarna": {\n      "preferred_locale": null\n    },\n    "link": {\n      "persistent_token": null\n    }\n  },\n  "payment_method_types": [\n    "card",\n    "klarna",\n    "link",\n    "affirm",\n    "cashapp",\n    "amazon_pay"\n  ],\n  "processing": null,\n  "receipt_email": null,\n  "review": null,\n  "setup_future_usage": null,\n  "shipping": null,\n  "source": null,\n  "statement_descriptor": null,\n  "statement_descriptor_suffix": null,\n  "status": "requires_payment_method",\n  "transfer_data": null,\n  "transfer_group": null\n}' message='API response body'
+2026-04-15 15:24:55,002 - DEBUG - link=https://dashboard.stripe.com/test/logs/req_XJ1OUcdpIZPsK6 message='Dashboard link for request'
+2026-04-15 15:24:55,012 - INFO - PaymentIntent created successfully: pi_3TMQ9q5MJAfJunXF0aOJ2apx for user 45
