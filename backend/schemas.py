@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     license_number: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, regex=r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$")
+    password: str = Field(..., min_length=8, max_length=15, regex=r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$")
 
 class UserResponse(UserBase):
     id: int

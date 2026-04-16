@@ -9,7 +9,11 @@ class ApiService {
   static String get baseUrl {
     if (kIsWeb) return 'http://127.0.0.1:8005';
     try {
-      if (Platform.isAndroid) return 'http://10.0.2.2:8005';
+      if (Platform.isAndroid) {
+        // Use 10.0.2.2 for emulator, or your machine's IP for real devices
+        // I have detected your IP as 192.168.106.114
+        return 'http://192.168.106.114:8005';
+      }
     } catch (_) {}
     return 'http://127.0.0.1:8005';
   }

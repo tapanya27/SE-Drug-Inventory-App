@@ -29,7 +29,7 @@ load_dotenv()
 # Create tables
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Pharma Supply System API")
+app = FastAPI(title="Medit API")
 
 # Stripe Configuration
 # (Key now assigned dynamically in request handlers to ensure sync with .env)
